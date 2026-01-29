@@ -1,0 +1,10 @@
+int a=10;
+long b=30;
+short c=5;
+byte d=1;
+float e=5.5;
+double f=555.55555;
+bool x=true;
+bool y=false;
+string s="teri ma ka bhosda"
+char ch='c';
