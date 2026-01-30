@@ -50,6 +50,8 @@ enum type
   TOKEN_ASTERISK_EQUALS, // *=
   TOKEN_SLASH_EQUALS,    // /=
   TOKEN_PERCENT_EQUALS,  // %=
+  TOKEN_INCREMENT,       // ++
+  TOKEN_DECREMENT,       // --
 
   // --- BITWISE OPERATORS ---
   TOKEN_BITWISE_AND,        // &
