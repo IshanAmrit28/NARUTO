@@ -1,10 +1,50 @@
-int a=10;
-long b=30;
-short c=5;
-byte d=1;
-float e=5.5;
-double f=555.55555;
-bool x=true;
-bool y=false;
-string s="teri ma ka bhosda"
-char ch='c';
+
+int myInt = 123;
+float myFloat = 3.14159;
+double myDouble = 99.999999;
+byte myByte = 255;
+short myShort = 32000;
+long myLong = 123456789;
+bool isCoding = true;
+bool isSleeping = false;
+char grade = 'A';
+string message = "Welcome to Naruto Lang!";
+void nullValue = null;
+
+
+var result = 10 + 20 * 5;     
+result += 5;                   
+result -= 2;
+var check = (a == b);          
+var check2 = (a != b);         
+var check3 = (a >= 10);        
+var check4 = (b <= 5);         
+
+
+
+if (isCoding) {
+    print "Keep going!";
+} else {
+    print "Start coding!";
+}
+
+while (myInt > 0) {
+    myInt = myInt - 1;
+    if (myInt == 50) {
+        continue;
+    }
+    if (myInt == 10) {
+        break;
+    }
+}
+
+for (var i = 0; i < 10; i = i + 1) {
+    print i;
+}
+
+
+function calculateSum(int x, int y) {
+    return x + y;
+}
+
+const PI = 3.14;

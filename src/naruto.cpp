@@ -34,9 +34,8 @@ int main(int argc, char *argv[])
   for (Token *t : tokens)
   {
     counter++;
-    // std::cout << counter << ") " << "Type: " << typeToString(t->TYPE) << " Value: " << t->VALUE << std::endl;
-    std::cout << counter << ") " << "Type: " << t->TYPE << " Value: " << t->VALUE << std::endl;
-  }
+    std::cout << counter << ") " << "Type: " << typeToString(t->TYPE) << " Value: " << t->VALUE << std::endl;
+    }
   std::cout << "END OF PEROGRAM" << std::endl;
 
   return 0;

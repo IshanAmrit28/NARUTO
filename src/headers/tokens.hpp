@@ -80,7 +80,6 @@ enum type
   TOKEN_FOR,
   TOKEN_RETURN,
   TOKEN_FUNCTION, // keyword 'fn' or 'function'
-  TOKEN_VAR,      // keyword 'var'
   TOKEN_CONST,    // keyword 'const'
   TOKEN_TRUE,     // keyword 'true'
   TOKEN_FALSE,    // keyword 'false'
@@ -97,7 +96,7 @@ struct Token
 {
   enum type TYPE;
   std::string VALUE;
-  int line; // CRITICAL: Needed for error reporting (e.g., "Error on line 10")
+  int line;
 };
 
 #endif
