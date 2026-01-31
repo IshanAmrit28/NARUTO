@@ -1,4 +1,3 @@
-````markdown
 # 📜 Naruto Lang - Syntax Documentation v1.0
 
 ## 1. Program Structure
@@ -12,7 +11,6 @@ Use `//` for single-line comments. The lexer ignores everything after `//` until
 // This is a comment
 int x = 10; // Variable declaration
 ```
-````
 
 ---
 
@@ -297,9 +295,5 @@ print "Counting down:";
 for (int i = 5; i > 0; i--) {
     print i;
 }
-
-```
-
-```
 
 ```
