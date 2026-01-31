@@ -296,6 +296,12 @@ public:
           advance();
           tokens.push_back(createToken(TOKEN_LESS_EQUAL, "<="));
         }
+        else if (peekNext() == '<')
+        {
+          advance();
+          advance();
+          tokens.push_back(createToken(TOKEN_LEFT_SHIFT, "<<"));
+        }
         else
         {
           advance();
@@ -309,6 +315,12 @@ public:
           advance();
           advance();
           tokens.push_back(createToken(TOKEN_GREATER_EQUAL, ">="));
+        }
+        else if (peekNext() == '>')
+        {
+          advance();
+          advance();
+          tokens.push_back(createToken(TOKEN_RIGHT_SHIFT, ">>"));
         }
         else
         {
@@ -324,6 +336,12 @@ public:
           advance();
           tokens.push_back(createToken(TOKEN_PLUS_EQUALS, "+="));
         }
+        else if (peekNext() == '+')
+        {
+          advance();
+          advance();
+          tokens.push_back(createToken(TOKEN_INCREMENT, "++"));
+        }
         else
         {
           advance();
@@ -337,6 +355,12 @@ public:
           advance();
           advance();
           tokens.push_back(createToken(TOKEN_MINUS_EQUALS, "-="));
+        }
+        else if (peekNext() == '-')
+        {
+          advance();
+          advance();
+          tokens.push_back(createToken(TOKEN_DECREMENT, "--"));
         }
         else
         {
@@ -356,6 +380,49 @@ public:
           tokens.push_back(createToken(TOKEN_SLASH, "/"));
           advance();
         }
+        break;
+      case '.':
+        tokens.push_back(createToken(TOKEN_DOT, "."));
+        advance();
+        break;
+
+      case ':':
+        tokens.push_back(createToken(TOKEN_COLON, ":"));
+        advance();
+        break;
+      case '&':
+        if (peekNext() == '&')
+        {
+          advance();
+          advance();
+          tokens.push_back(createToken(TOKEN_AND, "&&"));
+        }
+        else
+        {
+          tokens.push_back(createToken(TOKEN_BITWISE_AND, "&"));
+          advance();
+        }
+        break;
+      case '|':
+        if (peekNext() == '|')
+        {
+          advance();
+          advance();
+          tokens.push_back(createToken(TOKEN_OR, "||"));
+        }
+        else
+        {
+          tokens.push_back(createToken(TOKEN_BITWISE_OR, "|"));
+          advance();
+        }
+        break;
+      case '^':
+        tokens.push_back(createToken(TOKEN_BITWISE_XOR, "^"));
+        advance();
+        break;
+      case '~':
+        tokens.push_back(createToken(TOKEN_BITWISE_NOT, "~"));
+        advance();
         break;
 
       default:

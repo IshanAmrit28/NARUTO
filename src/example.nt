@@ -12,13 +12,13 @@ string message = "Welcome to Naruto Lang!";
 void nullValue = null;
 
 
-var result = 10 + 20 * 5;     
+int result = 10 + 20 * 5;     
 result += 5;                   
 result -= 2;
-var check = (a == b);          
-var check2 = (a != b);         
-var check3 = (a >= 10);        
-var check4 = (b <= 5);         
+bool check = (a == b);          
+bool check2 = (a != b);         
+bool check3 = (a >= 10);        
+bool check4 = (b <= 5);         
 
 
 
@@ -38,7 +38,7 @@ while (myInt > 0) {
     }
 }
 
-for (var i = 0; i < 10; i = i + 1) {
+for (int i = 0; i < 10; i = i + 1) {
     print i;
 }
 
@@ -47,4 +47,4 @@ function calculateSum(int x, int y) {
     return x + y;
 }
 
-const PI = 3.14;
+const float PI = 3.14;

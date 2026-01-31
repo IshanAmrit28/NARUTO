@@ -29,6 +29,7 @@ enum type
   TOKEN_ASTERISK, // *
   TOKEN_SLASH,    // /
   TOKEN_PERCENT,  // %
+                 // TOKEN_POWER,  // **  //future updates
 
   // --- COMPARISON OPERATORS ---
   TOKEN_DOUBLE_EQUALS, // ==
@@ -52,16 +53,17 @@ enum type
   TOKEN_PERCENT_EQUALS,  // %=
   TOKEN_INCREMENT,       // ++
   TOKEN_DECREMENT,       // --
+                   // TOKEN_POWER_EQUALS, // **= //future updates
 
   // --- BITWISE OPERATORS ---
-  TOKEN_BITWISE_AND,        // &
-  TOKEN_BITWISE_OR,         // |
-  TOKEN_BITWISE_XOR,        // ^
-  TOKEN_BITWISE_NOT,        // ~
-  TOKEN_LEFT_SHIFT,         // <<
-  TOKEN_RIGHT_SHIFT,        // >>
-  TOKEN_LEFT_SHIFT_EQUALS,  // <<=
-  TOKEN_RIGHT_SHIFT_EQUALS, // >>=
+  TOKEN_BITWISE_AND, // &
+  TOKEN_BITWISE_OR,  // |
+  TOKEN_BITWISE_XOR, // ^
+  TOKEN_BITWISE_NOT, // ~
+  TOKEN_LEFT_SHIFT,  // <<
+  TOKEN_RIGHT_SHIFT, // >>
+                     // TOKEN_LEFT_SHIFT_EQUALS,  // <<= future updates
+                     // TOKEN_RIGHT_SHIFT_EQUALS, // >>= future updates
 
   // --- SPECIAL CHARACTERS ---
   TOKEN_DOT,           // .
@@ -94,6 +96,95 @@ enum type
   TOKEN_EOF
 };
 
+// Helper to convert Token Type to String
+
+std::string typeToString(enum type TYPE)
+{
+  switch (TYPE)
+  {
+  case TOKEN_BYTE_TYPE:
+    return "TOKEN_BYTE_TYPE";
+  case TOKEN_INT_TYPE:
+    return "TOKEN_INT_TYPE";
+  case TOKEN_FLOAT_TYPE:
+    return "TOKEN_FLOAT_TYPE";
+  case TOKEN_STRING_TYPE:
+    return "TOKEN_STRING_TYPE";
+  case TOKEN_CHAR_TYPE:
+    return "TOKEN_CHAR_TYPE";
+  case TOKEN_BOOL_TYPE:
+    return "TOKEN_BOOL_TYPE";
+  case TOKEN_LONG_TYPE:
+    return "TOKEN_LONG_TYPE";
+  case TOKEN_SHORT_TYPE:
+    return "TOKEN_SHORT_TYPE";
+  case TOKEN_DOUBLE_TYPE:
+    return "TOKEN_DOUBLE_TYPE";
+  case TOKEN_VOID_TYPE:
+    return "TOKEN_VOID_TYPE";
+
+  case TOKEN_TRUE:
+    return "TOKEN_TRUE";
+  case TOKEN_FALSE:
+    return "TOKEN_FALSE";
+  case TOKEN_NULL:
+    return "TOKEN_NULL";
+  case TOKEN_IF:
+    return "TOKEN_IF";
+  case TOKEN_ELSE:
+    return "TOKEN_ELSE";
+  case TOKEN_WHILE:
+    return "TOKEN_WHILE";
+  case TOKEN_FOR:
+    return "TOKEN_FOR";
+  case TOKEN_PRINT:
+    return "TOKEN_PRINT";
+  case TOKEN_RETURN:
+    return "TOKEN_RETURN";
+
+  case TOKEN_ID:
+    return "TOKEN_ID";
+  case TOKEN_INT_LITERAL:
+    return "TOKEN_INT_LITERAL";
+  case TOKEN_FLOAT_LITERAL:
+    return "TOKEN_FLOAT_LITERAL";
+  case TOKEN_STRING_LITERAL:
+    return "TOKEN_STRING_LITERAL";
+  case TOKEN_CHAR_LITERAL:
+    return "TOKEN_CHAR_LITERAL";
+
+  case TOKEN_PLUS:
+    return "TOKEN_PLUS";
+  case TOKEN_MINUS:
+    return "TOKEN_MINUS";
+  case TOKEN_ASTERISK:
+    return "TOKEN_ASTERISK";
+  case TOKEN_SLASH:
+    return "TOKEN_SLASH";
+  case TOKEN_EQUALS:
+    return "TOKEN_EQUALS";
+  case TOKEN_DOUBLE_EQUALS:
+    return "TOKEN_DOUBLE_EQUALS";
+
+  case TOKEN_SEMICOLON:
+    return "TOKEN_SEMICOLON";
+  case TOKEN_OPEN_PAREN:
+    return "TOKEN_OPEN_PAREN";
+  case TOKEN_CLOSE_PAREN:
+    return "TOKEN_CLOSE_PAREN";
+  case TOKEN_OPEN_BRACE:
+    return "TOKEN_OPEN_BRACE";
+  case TOKEN_CLOSE_BRACE:
+    return "TOKEN_CLOSE_BRACE";
+  case TOKEN_COMMA:
+    return "TOKEN_COMMA";
+  case TOKEN_EOF:
+    return "TOKEN_EOF";
+
+  default:
+    return "UNKNOWN_TOKEN";
+  }
+}
 struct Token
 {
   enum type TYPE;
