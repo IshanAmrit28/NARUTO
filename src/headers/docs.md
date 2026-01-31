@@ -1,4 +1,4 @@
-# 📜 Naruto Lang - Syntax Documentation v1.0
+# 📜 Naruto - Syntax Documentation v1.0
 
 ## 1. Program Structure
 
