@@ -1,6 +1,3 @@
-Here is the complete, cohesive syntax documentation for **Naruto Lang v1.0** in Markdown format. You can copy-paste this directly into a `README.md` or `SYNTAX.md` file.
-
-````markdown
 # 📜 Naruto Lang - Syntax Documentation v1.0
 
 ## 1. Program Structure
@@ -14,6 +11,7 @@ Use `//` for single-line comments. The lexer ignores everything after `//` until
 // This is a comment
 int x = 10; // Variable declaration
 ```
+
 ````
 
 ---
@@ -305,3 +303,4 @@ for (int i = 5; i > 0; i--) {
 ```
 
 ```
+````
