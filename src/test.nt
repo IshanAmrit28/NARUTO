@@ -1,0 +1,109 @@
+// ==========================================
+//      NARUTO LANG V1.0 - MASTER TEST
+// ==========================================
+
+print "--- 1. PRIMITIVE TYPES & MATH ---";
+
+int a = 10;
+float bb = 20.5;
+string ninja = "Naruto";
+bool isHokage = false;
+
+// Compound Math
+a += 5;             // a is now 15
+bb *= 2;             // b is now 41.0
+float result = a + bb; // 15 + 41.0 = 56.0
+
+print "Integer (15):";
+print a;
+print "Float (41.0):";
+print bb;
+print "Result (56.0):";
+print result;
+
+// ==========================================
+
+print "--- 2. LOGIC & CONTROL FLOW ---";
+
+int chakra = 0;
+bool hasScroll = false;
+print hasScroll;
+// Logical AND / OR
+if ( true  && false) {
+    print "Jutsu Activated!";
+} else {
+    print "Not enough chakra.";
+}
+
+// While Loop
+print "Charging Chakra...";
+while (chakra < 3) {
+    chakra += 1;
+    print chakra;
+}
+
+// ==========================================
+
+print "--- 3. ARRAYS ---";
+
+// Array Declaration & Literal
+int[] squad7 = [7, 8, 9];
+print "the squad 7 has follwoing members";
+for(int i=0;i<3;i+=1){
+  print squad7[i];
+}
+print "Squad Member 1:";
+print squad7[0]; 
+
+print "Squad Member 3:";
+print squad7[2];
+
+// ==========================================
+
+print "--- 4. RECURSION (FIBONACCI) ---";
+
+// Recursive Function Definition
+function int fib(int n) {
+    if (n <= 1) {
+        return n;
+    }
+    
+    return fib(n - 1) + fib(n - 2);
+}
+
+// Calculate 10th Fibonacci number
+// Sequence: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55
+print "Calculating fib(10)...";
+int fibResult = fib(10); 
+
+print "Fibonacci of 10 is (Should be 55):" + fibResult;
+print fibResult;
+
+// ==========================================
+
+print "--- 5. INPUT TEST ---";
+
+// Interactive Input
+string user = input("Enter your name ninja: ");
+print "Welcome to the Hidden Leaf, " + user;
+
+// Bool Test
+bool x = true;
+bool y = false;
+print "Bool Test (true != false):";
+print x != y; // Should be true
+
+// Byte/Short Test
+byte b = 100;
+short s = 30000;
+long l = 123456789;
+print "Byte + Short + Long:";
+print b + s + l;
+
+// Double Test
+double d = 3.14159;
+float f = 2.5;
+print "Double + Float:";
+print d + f;
+
+print "--- TEST COMPLETE ---";

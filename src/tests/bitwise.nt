@@ -1,0 +1,9 @@
+print "--- TEST: Bitwise ---";
+
+int a = 5;  // 0101
+int b = 3;  // 0011
+
+print "5 & 3 (AND) = " + (a & b); // 0001 -> 1
+print "5 | 3 (OR)  = " + (a | b); // 0111 -> 7
+print "5 ^ 3 (XOR) = " + (a ^ b); // 0110 -> 6
+print "5 << 1 (LSHIFT) = " + (a << 1); // 1010 -> 10

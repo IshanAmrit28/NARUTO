@@ -1,0 +1,22 @@
+print "--- TEST: Primitives ---";
+
+// Standard Types
+int i = 100;
+float f = 10.5;
+string s = "Hello Naruto";
+bool b = true;
+char c = 'A';
+
+// Extended Types (Tests the Type Checker Fixes)
+byte by = 255;
+short sh = 30000;
+long lo = 123456789;
+double db = 99.999999;
+
+print "Int: " + i;
+print "Float: " + f;
+print "String: " + s;
+print "Bool: " + b;
+print "Byte: " + by;
+print "Long: " + lo;
+print "Double: " + db;

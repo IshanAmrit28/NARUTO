@@ -1,0 +1,21 @@
+print "--- TEST: Math ---";
+
+int x = 10;
+int y = 5;
+
+// Basic Integer Math
+print "10 + 5 = " + (x + y);
+print "10 - 5 = " + (x - y);
+print "10 * 5 = " + (x * y);
+print "10 / 5 = " + (x / y);
+print "10 % 3 = " + (x % 3);
+
+// Float Math (Tests the Interpreter Fixes)
+float f1 = 2.5;
+float f2 = 2.0;
+print "2.5 * 2.0 = " + (f1 * f2); // Should be 5.0
+print "2.5 + 10 = " + (f1 + x);   // Mixed Type (12.5)
+
+// Compound Assignment
+x += 10;
+print "x += 10 is now: " + x;

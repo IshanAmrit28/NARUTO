@@ -1,0 +1,21 @@
+print "--- TEST: Logic ---";
+
+bool t = true;
+bool f = false;
+
+// Boolean Comparison (Tests Boolean Fix)
+if (t != f) {
+    print "True is not False (Correct)";
+} else {
+    print "Error: Logic failed";
+}
+
+// Complex Logic
+int chakra = 50;
+if (chakra > 10 && chakra < 100) {
+    print "Chakra is stable (Correct)";
+}
+
+if (t || f) {
+    print "OR operator works (Correct)";
+}

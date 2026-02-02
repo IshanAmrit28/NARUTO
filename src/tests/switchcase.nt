@@ -1,0 +1,14 @@
+print "--- TEST: Switch ---";
+
+int rank = 2;
+
+switch (rank) {
+    case 1:
+        print "Genin";
+    case 2:
+        print "Chunin (Correct)";
+    case 3:
+        print "Jonin";
+    default:
+        print "Civilian";
+}

@@ -1,0 +1,16 @@
+print "--- TEST: Arrays ---";
+
+int[] numbers = [10, 20, 30, 40, 50];
+
+print "Element 0: " + numbers[0];
+print "Element 4: " + numbers[4];
+
+// Modify
+numbers[2] = 999;
+print "Modified Element 2 (was 30): " + numbers[2];
+
+// Simple Iteration
+print "Iterating:";
+for (int i = 0; i < 3; i++) {
+    print numbers[i];
+}

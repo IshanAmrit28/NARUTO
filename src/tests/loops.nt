@@ -1,0 +1,32 @@
+print "--- TEST: Loops ---";
+
+print "1. While Loop (0 to 2)";
+int i = 0;
+while (i < 3) {
+    print i;
+    i++;
+}
+
+print "2. For Loop (0 to 2)";
+for (int j = 0; j < 3; j++) {
+    print j;
+}
+
+print "3. Break Test (Stops at 2)";
+int k = 0;
+while (true) {
+    if (k == 2) {
+        print "Breaking...";
+        break;
+    }
+    print k;
+    k++;
+}
+
+print "4. Continue Test (Skips 1)";
+for (int m = 0; m < 3; m++) {
+    if (m == 1) {
+        continue;
+    }
+    print m; // Should print 0, then 2
+}
