@@ -218,7 +218,7 @@ private:
     consume_token(TOKEN_OPEN_PAREN, "Expected '('.");
     STATEMENT *initializer = nullptr;
 
-    // Parse Initializer (e.g., int i = 0;)
+    // Parse Initializer
     if (!match_types({TOKEN_SEMICOLON}))
     {
       if (is_data_type(peek_current()->TYPE))
@@ -227,13 +227,13 @@ private:
         initializer = parse_expression_statement();
     }
 
-    // Parse Condition (e.g., i < 10;)
+    // Parse Condition
     EXPRESSION *condition = nullptr;
     if (!check_type(TOKEN_SEMICOLON))
       condition = parse_expression_logic();
     consume_token(TOKEN_SEMICOLON, "Expected ';'.");
 
-    // Parse Increment (e.g., i++)
+    // Parse Increment
     EXPRESSION *increment = nullptr;
     if (!check_type(TOKEN_CLOSE_PAREN))
       increment = parse_expression_logic();
@@ -241,22 +241,8 @@ private:
 
     STATEMENT *body = parse_statement();
 
-    // [DESUGARING] Converts FOR Loop into a WHILE Loop block
-    // { init; while(cond) { body; increment; } }
-    if (increment)
-    {
-      std::vector<STATEMENT *> body_stmts = {body, new EXPRESSION_STATEMENT(increment)};
-      body = new BLOCK_STATEMENT(body_stmts);
-    }
-    if (!condition)
-      condition = new LITERAL_EXPRESSION(Token{TOKEN_TRUE, "true", 0});
-    body = new WHILE_STATEMENT(condition, body);
-    if (initializer)
-    {
-      std::vector<STATEMENT *> init_stmts = {initializer, body};
-      body = new BLOCK_STATEMENT(init_stmts);
-    }
-    return body;
+    // [FIX] No more desugaring to while. Return the real node.
+    return new FOR_STATEMENT(initializer, condition, increment, body);
   }
 
   STATEMENT *parse_if_statement()

@@ -383,13 +383,30 @@ public:
 
   // [NEW] Added visitor for FOR_STATEMENT to satisfy AST_VISITOR interface.
   // The parser desugars this, but we must implement it.
-  void visit(FOR_STATEMENT *statement) override
+  void visit(FOR_STATEMENT *stmt) override
   {
-    // Logic same as While essentially, but simpler just to check body
-    enter_new_scope();
+    enter_new_scope(); // For loops have their own scope (for int i=0...)
+
+    if (stmt->initializer)
+      stmt->initializer->accept(this);
+
+    if (stmt->condition)
+    {
+      stmt->condition->accept(this);
+      if (last_evaluated_type != "bool")
+      {
+        std::cerr << "Type Error: For loop condition must be bool." << std::endl;
+        exit(1);
+      }
+    }
+
+    if (stmt->increment)
+      stmt->increment->accept(this);
+
     loop_depth++;
-    statement->body->accept(this);
+    stmt->body->accept(this);
     loop_depth--;
+
     exit_current_scope();
   }
 

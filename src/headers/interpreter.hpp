@@ -466,7 +466,44 @@ public:
   // [NEW] For Statement - Dead code technically, but required for compilation
   void visit(FOR_STATEMENT *stmt) override
   {
-    // Parser converts this to WHILE, so this should never run.
+    ENVIRONMENT *prev = current_environment;
+    current_environment = new ENVIRONMENT(prev); // Scope for initializer
+
+    // 1. Run Initializer
+    if (stmt->initializer)
+      stmt->initializer->accept(this);
+
+    while (true)
+    {
+      // 2. Check Condition
+      if (stmt->condition)
+      {
+        stmt->condition->accept(this);
+        if (!is_truthy(last_evaluated_value))
+          break;
+      }
+
+      // 3. Run Body
+      try
+      {
+        stmt->body->accept(this);
+      }
+      catch (const BreakException &)
+      {
+        break; // Stop loop entirely
+      }
+      catch (const ContinueException &)
+      {
+        // Catch it, but DO NOTHING.
+        // Just let execution fall through to step 4 (Increment).
+      }
+
+      // 4. Run Increment (This runs even after continue!)
+      if (stmt->increment)
+        stmt->increment->accept(this);
+    }
+
+    current_environment = prev; // Cleanup scope
   }
 
   void visit(FUNCTION_DECLARATION_STATEMENT *stmt) override { functions[stmt->name_token.VALUE] = stmt; }
