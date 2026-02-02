@@ -1,0 +1,4 @@
+string name = input("enter your name: ");
+int age = input("enter your age: "); 
+
+print "hello my name is " + name + " i am " + age + " years old";

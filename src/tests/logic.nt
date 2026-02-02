@@ -11,9 +11,11 @@ if (t != f) {
 }
 
 // Complex Logic
-int chakra = 50;
+int chakra = 150;
 if (chakra > 10 && chakra < 100) {
     print "Chakra is stable (Correct)";
+}else{
+    print "chakra is less";
 }
 
 if (t || f) {
