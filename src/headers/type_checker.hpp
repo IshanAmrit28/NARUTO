@@ -227,6 +227,37 @@ public:
     }
     // Result type remains the same (e.g., int++ is int)
   }
+  void visit(ARRAY_ASSIGNMENT_EXPRESSION *expr) override
+  {
+    expr->array_expression->accept(this);
+    std::string arr_type = last_evaluated_type;
+
+    // Check if it's actually an array
+    if (arr_type.length() < 3 || arr_type.substr(arr_type.length() - 2) != "[]")
+    {
+      std::cerr << "Type Error: Cannot assign to non-array type." << std::endl;
+      exit(1);
+    }
+    std::string elem_type = arr_type.substr(0, arr_type.length() - 2);
+
+    // Check Index
+    expr->index_expression->accept(this);
+    if (last_evaluated_type != "int")
+    {
+      std::cerr << "Type Error: Array index must be int." << std::endl;
+      exit(1);
+    }
+
+    // Check Value
+    expr->value_expression->accept(this);
+    if (!can_assign(elem_type, last_evaluated_type))
+    {
+      std::cerr << "Type Error: Cannot assign '" << last_evaluated_type << "' to array of '" << elem_type << "'." << std::endl;
+      exit(1);
+    }
+    // Result of assignment is the value
+    last_evaluated_type = elem_type;
+  }
 
   void visit(ASSIGNMENT_EXPRESSION *expr) override
   {

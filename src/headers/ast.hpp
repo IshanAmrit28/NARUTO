@@ -134,6 +134,16 @@ public:
   void accept(AST_VISITOR *visitor) override;
 };
 
+class ARRAY_ASSIGNMENT_EXPRESSION : public EXPRESSION
+{
+public:
+  EXPRESSION *array_expression;
+  EXPRESSION *index_expression;
+  EXPRESSION *value_expression;
+  ARRAY_ASSIGNMENT_EXPRESSION(EXPRESSION *arr, EXPRESSION *idx, EXPRESSION *val)
+      : array_expression(arr), index_expression(idx), value_expression(val) {}
+  void accept(AST_VISITOR *visitor) override;
+};
 class ASSIGNMENT_EXPRESSION : public EXPRESSION
 {
 public:
@@ -289,6 +299,7 @@ public:
   virtual void visit(INPUT_EXPRESSION *expression) = 0;
   virtual void visit(ARRAY_LITERAL_EXPRESSION *expression) = 0;
   virtual void visit(ARRAY_ACCESS_EXPRESSION *expression) = 0;
+  virtual void visit(ARRAY_ASSIGNMENT_EXPRESSION *expression) = 0;
   virtual void visit(ASSIGNMENT_EXPRESSION *expression) = 0;
 
   virtual void visit(EXPRESSION_STATEMENT *statement) = 0;
@@ -317,6 +328,7 @@ inline void CALL_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void INPUT_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void ARRAY_LITERAL_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void ARRAY_ACCESS_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
+inline void ARRAY_ASSIGNMENT_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void ASSIGNMENT_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void EXPRESSION_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
 inline void PRINT_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }

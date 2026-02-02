@@ -589,6 +589,49 @@ public:
     last_evaluated_value = arr.array_elements[idx.int_val];
   }
 
+  void visit(ARRAY_ASSIGNMENT_EXPRESSION *expr) override
+  {
+    // 1. Evaluate Array (target)
+    expr->array_expression->accept(this);
+    RuntimeValue arr_val = last_evaluated_value; // This is a COPY of the struct
+
+    // We need a pointer to the ACTUAL variable in the environment to modify it.
+    // This part is tricky because 'arr_val' is just a value.
+    // Simplified approach: Re-fetch variable by name if the expression is a variable.
+
+    VARIABLE_EXPRESSION *varExpr = dynamic_cast<VARIABLE_EXPRESSION *>(expr->array_expression);
+    if (!varExpr)
+    {
+      std::cerr << "Runtime Error: Direct assignment to non-variable arrays not supported." << std::endl;
+      exit(1);
+    }
+
+    // 2. Evaluate Index
+    expr->index_expression->accept(this);
+    RuntimeValue idx_val = last_evaluated_value;
+
+    // 3. Evaluate Value
+    expr->value_expression->accept(this);
+    RuntimeValue assign_val = last_evaluated_value;
+
+    // 4. Perform Update
+    // Get the ACTUAL array from environment
+    RuntimeValue currentArr = current_environment->get(varExpr->name.VALUE);
+
+    if (idx_val.int_val < 0 || idx_val.int_val >= currentArr.array_elements.size())
+    {
+      std::cerr << "Runtime Error: Array index out of bounds." << std::endl;
+      exit(1);
+    }
+
+    // Update the element
+    currentArr.array_elements[idx_val.int_val] = assign_val;
+
+    // Write it back to environment
+    current_environment->assign(varExpr->name.VALUE, currentArr);
+
+    last_evaluated_value = assign_val;
+  }
   void visit(EXPRESSION_STATEMENT *stmt) override { stmt->expression->accept(this); }
   // CORRECTED: Real Logic for && and ||
   void visit(LOGICAL_EXPRESSION *expr) override
