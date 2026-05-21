@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #0d1117;
+  color: #c9d1d9;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.playground-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.header {
+  height: 60px;
+  background-color: #161b22;
+  border-bottom: 1px solid #30363d;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ff7b00; /* Naruto Orange */
+  text-shadow: 0 0 10px rgba(255, 123, 0, 0.4);
+}
+
+.run-button {
+  background: linear-gradient(135deg, #ff7b00, #ff4500);
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(255, 123, 0, 0.3);
+}
+
+.run-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 123, 0, 0.5);
+}
+
+.run-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.run-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #555;
+  box-shadow: none;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 60px);
+}
+
+.editor-pane {
+  flex: 1;
+  border-right: 1px solid #30363d;
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+}
+
+.terminal-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #0d1117;
+  width: 50%;
+}
+
+.pane-title {
+  background-color: #21262d;
+  padding: 8px 15px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8b949e;
+  border-bottom: 1px solid #30363d;
+}
+
+.xterm-container {
+  flex: 1;
+  padding: 10px;
+  height: calc(100vh - 100px);
+  overflow: hidden;
+}
+
+/* Ensure xterm scrollbar is visible but styled nicely if possible */
+.xterm-viewport {
+  background-color: #0d1117 !important;
+}
