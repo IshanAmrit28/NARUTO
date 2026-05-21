@@ -1,0 +1,13 @@
+print "--- TEST: Encapsulation Failure ---";
+
+class Shinobi {
+    private int chakra;
+
+    function void init(int chakra) {
+        this.chakra = chakra;
+    }
+}
+
+Shinobi s = new Shinobi(100);
+// This should fail to compile/type-check:
+print s.chakra;

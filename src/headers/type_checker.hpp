@@ -10,6 +10,20 @@
 class TYPE_CHECKER : public AST_VISITOR
 {
 private:
+  struct ClassTypeInfo
+  {
+    std::string name;
+    std::string superclass;
+    bool is_struct = false;
+    std::unordered_map<std::string, std::string> field_types;
+    std::unordered_map<std::string, bool> is_private;
+    std::unordered_map<std::string, std::string> method_return_types;
+    std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> method_params;
+    std::vector<std::pair<std::string, std::string>> struct_fields;
+  };
+  std::unordered_map<std::string, ClassTypeInfo> class_registry;
+  std::string current_class = "";
+
   std::vector<std::unordered_map<std::string, std::string>> scope_stack;
   std::unordered_map<std::string, std::string> function_signatures;
   std::string last_evaluated_type;
@@ -73,6 +87,15 @@ private:
       return true;
     if (target == "string" || source == "string")
       return false;
+
+    // Check inheritance chain for polymorphism
+    std::string curr = source;
+    while (class_registry.count(curr))
+    {
+      curr = class_registry[curr].superclass;
+      if (curr == target)
+        return true;
+    }
 
     // [FIX] Allow int to be assigned to byte/short (for literals like: byte b = 10;)
     if (source == "int" && (target == "byte" || target == "short" || target == "long" || target == "double" || target == "float"))
@@ -483,14 +506,353 @@ public:
   {
     if (auto v = dynamic_cast<VARIABLE_EXPRESSION *>(expr->callee))
     {
-      if (function_signatures.count(v->name.VALUE))
-        last_evaluated_type = function_signatures[v->name.VALUE];
-      else
+      std::string name = v->name.VALUE;
+      if (class_registry.count(name))
       {
-        std::cerr << "Semantic Error: Undefined function '" << v->name.VALUE << "'." << std::endl;
+        ClassTypeInfo info = class_registry[name];
+        if (info.is_struct)
+        {
+          // Struct positional constructor call
+          if (expr->arguments.size() != info.struct_fields.size())
+          {
+            std::cerr << "Semantic Error: Struct '" << name << "' expects "
+                      << info.struct_fields.size() << " fields, got " << expr->arguments.size() << "." << std::endl;
+            exit(1);
+          }
+          for (size_t i = 0; i < expr->arguments.size(); i++)
+          {
+            expr->arguments[i]->accept(this);
+            std::string arg_type = last_evaluated_type;
+            std::string expected_type = info.struct_fields[i].second;
+            if (!can_assign(expected_type, arg_type))
+            {
+              std::cerr << "Type Error: Struct '" << name << "' field '"
+                        << info.struct_fields[i].first << "' expects '" << expected_type << "', got '" << arg_type << "'." << std::endl;
+              exit(1);
+            }
+          }
+          last_evaluated_type = name;
+          return;
+        }
+      }
+
+      if (function_signatures.count(name))
+      {
+        last_evaluated_type = function_signatures[name];
+        return;
+      }
+
+      std::cerr << "Semantic Error: Undefined function or struct constructor '" << name << "'." << std::endl;
+      exit(1);
+    }
+    else if (auto get_expr = dynamic_cast<GET_EXPRESSION *>(expr->callee))
+    {
+      get_expr->object_expression->accept(this);
+      std::string obj_type = last_evaluated_type;
+
+      if (!class_registry.count(obj_type))
+      {
+        std::cerr << "Type Error: Type '" << obj_type << "' has no members." << std::endl;
+        exit(1);
+      }
+
+      ClassTypeInfo info = class_registry[obj_type];
+      std::string method_name = get_expr->member_name.VALUE;
+
+      if (!info.method_return_types.count(method_name))
+      {
+        std::cerr << "Semantic Error: Method '" << method_name << "' not found on type '" << obj_type << "'." << std::endl;
+        exit(1);
+      }
+
+      // Access control verification for method call
+      if (info.is_private[method_name])
+      {
+        bool is_access_valid = false;
+        if (current_class == obj_type)
+        {
+          if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION *>(get_expr->object_expression))
+          {
+            if (var_expr->name.VALUE == "this")
+            {
+              is_access_valid = true;
+            }
+          }
+        }
+        if (!is_access_valid)
+        {
+          std::cerr << "Semantic Error: Member '" << method_name << "' of class '"
+                    << obj_type << "' is private and can only be accessed on 'this' within the class." << std::endl;
+          exit(1);
+        }
+      }
+
+      auto expected_params = info.method_params[method_name];
+      if (expr->arguments.size() != expected_params.size())
+      {
+        std::cerr << "Semantic Error: Method '" << method_name << "' expects "
+                  << expected_params.size() << " arguments, got " << expr->arguments.size() << "." << std::endl;
+        exit(1);
+      }
+
+      for (size_t i = 0; i < expr->arguments.size(); i++)
+      {
+        expr->arguments[i]->accept(this);
+        std::string arg_type = last_evaluated_type;
+        std::string expected_type = expected_params[i].first;
+        if (!can_assign(expected_type, arg_type))
+        {
+          std::cerr << "Type Error: Method '" << method_name << "' parameter " << (i + 1)
+                    << " expects '" << expected_type << "', got '" << arg_type << "'." << std::endl;
+          exit(1);
+        }
+      }
+
+      last_evaluated_type = info.method_return_types[method_name];
+    }
+    else
+    {
+      expr->callee->accept(this);
+    }
+  }
+
+  void visit(CLASS_DECLARATION_STATEMENT *stmt) override
+  {
+    ClassTypeInfo info;
+    info.name = stmt->name_token.VALUE;
+    info.superclass = stmt->superclass_token.VALUE;
+    info.is_struct = false;
+    info.is_private = stmt->is_private;
+
+    if (!info.superclass.empty())
+    {
+      if (!class_registry.count(info.superclass))
+      {
+        std::cerr << "Semantic Error: Superclass '" << info.superclass << "' is undefined." << std::endl;
+        exit(1);
+      }
+      if (class_registry[info.superclass].is_struct)
+      {
+        std::cerr << "Semantic Error: Class '" << info.name << "' cannot inherit from a struct." << std::endl;
+        exit(1);
+      }
+      info.field_types = class_registry[info.superclass].field_types;
+      info.is_private.insert(class_registry[info.superclass].is_private.begin(), class_registry[info.superclass].is_private.end());
+      info.method_return_types = class_registry[info.superclass].method_return_types;
+      info.method_params = class_registry[info.superclass].method_params;
+    }
+
+    for (auto field : stmt->fields)
+    {
+      info.field_types[field->name_token.VALUE] = field->type_token.VALUE;
+    }
+
+    std::string old_class = current_class;
+    current_class = info.name;
+    for (auto method : stmt->methods)
+    {
+      info.method_return_types[method->name_token.VALUE] = method->return_type_token.VALUE;
+      std::vector<std::pair<std::string, std::string>> params;
+      for (auto &p : method->parameters)
+      {
+        params.push_back({p.type_token.VALUE, p.name_token.VALUE});
+      }
+      info.method_params[method->name_token.VALUE] = params;
+    }
+
+    class_registry[info.name] = info;
+
+    enter_new_scope();
+    declare_variable("this", info.name);
+    for (auto &f : info.field_types)
+    {
+      declare_variable(f.first, f.second);
+    }
+    for (auto method : stmt->methods)
+    {
+      method->accept(this);
+    }
+    exit_current_scope();
+    current_class = old_class;
+  }
+
+  void visit(STRUCT_DECLARATION_STATEMENT *stmt) override
+  {
+    ClassTypeInfo info;
+    info.name = stmt->name_token.VALUE;
+    info.is_struct = true;
+
+    for (auto field : stmt->fields)
+    {
+      info.field_types[field->name_token.VALUE] = field->type_token.VALUE;
+      info.is_private[field->name_token.VALUE] = false;
+      info.struct_fields.push_back({field->name_token.VALUE, field->type_token.VALUE});
+    }
+
+    class_registry[info.name] = info;
+
+    enter_new_scope();
+    for (auto field : stmt->fields)
+    {
+      field->accept(this);
+    }
+    exit_current_scope();
+  }
+
+  void visit(NEW_EXPRESSION *expr) override
+  {
+    std::string class_name = expr->class_name.VALUE;
+    if (!class_registry.count(class_name))
+    {
+      std::cerr << "Semantic Error: Undefined class '" << class_name << "'." << std::endl;
+      exit(1);
+    }
+    ClassTypeInfo info = class_registry[class_name];
+    if (info.is_struct)
+    {
+      std::cerr << "Semantic Error: Struct '" << class_name << "' cannot be instantiated with 'new'." << std::endl;
+      exit(1);
+    }
+
+    if (info.method_return_types.count("init"))
+    {
+      auto expected_params = info.method_params["init"];
+      if (expr->arguments.size() != expected_params.size())
+      {
+        std::cerr << "Semantic Error: Constructor 'init' for class '" << class_name
+                  << "' expects " << expected_params.size() << " arguments, got "
+                  << expr->arguments.size() << "." << std::endl;
+        exit(1);
+      }
+      for (size_t i = 0; i < expr->arguments.size(); ++i)
+      {
+        expr->arguments[i]->accept(this);
+        std::string arg_type = last_evaluated_type;
+        std::string expected_type = expected_params[i].first;
+        if (!can_assign(expected_type, arg_type))
+        {
+          std::cerr << "Type Error: Constructor 'init' parameter " << (i + 1)
+                    << " expects type '" << expected_type << "', got '" << arg_type << "'." << std::endl;
+          exit(1);
+        }
+      }
+    }
+    else
+    {
+      if (!expr->arguments.empty())
+      {
+        std::cerr << "Semantic Error: Class '" << class_name
+                  << "' does not define an 'init' constructor, but arguments were provided." << std::endl;
         exit(1);
       }
     }
+
+    last_evaluated_type = class_name;
+  }
+
+  void visit(GET_EXPRESSION *expr) override
+  {
+    expr->object_expression->accept(this);
+    std::string obj_type = last_evaluated_type;
+
+    if (!class_registry.count(obj_type))
+    {
+      std::cerr << "Type Error: Type '" << obj_type << "' has no members." << std::endl;
+      exit(1);
+    }
+
+    ClassTypeInfo info = class_registry[obj_type];
+    std::string member = expr->member_name.VALUE;
+
+    if (info.is_private[member])
+    {
+      bool is_access_valid = false;
+      if (current_class == obj_type)
+      {
+        if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION *>(expr->object_expression))
+        {
+          if (var_expr->name.VALUE == "this")
+          {
+            is_access_valid = true;
+          }
+        }
+      }
+      if (!is_access_valid)
+      {
+        std::cerr << "Semantic Error: Member '" << member << "' of class '"
+                  << obj_type << "' is private and can only be accessed on 'this' within the class." << std::endl;
+        exit(1);
+      }
+    }
+
+    if (info.field_types.count(member))
+    {
+      last_evaluated_type = info.field_types[member];
+    }
+    else if (info.method_return_types.count(member))
+    {
+      last_evaluated_type = info.method_return_types[member];
+    }
+    else
+    {
+      std::cerr << "Semantic Error: Member '" << member << "' not found on type '" << obj_type << "'." << std::endl;
+      exit(1);
+    }
+  }
+
+  void visit(SET_EXPRESSION *expr) override
+  {
+    expr->object_expression->accept(this);
+    std::string obj_type = last_evaluated_type;
+
+    if (!class_registry.count(obj_type))
+    {
+      std::cerr << "Type Error: Type '" << obj_type << "' has no members." << std::endl;
+      exit(1);
+    }
+
+    ClassTypeInfo info = class_registry[obj_type];
+    std::string member = expr->member_name.VALUE;
+
+    if (!info.field_types.count(member))
+    {
+      std::cerr << "Semantic Error: Field '" << member << "' not found on type '" << obj_type << "'." << std::endl;
+      exit(1);
+    }
+
+    if (info.is_private[member])
+    {
+      bool is_access_valid = false;
+      if (current_class == obj_type)
+      {
+        if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION *>(expr->object_expression))
+        {
+          if (var_expr->name.VALUE == "this")
+          {
+            is_access_valid = true;
+          }
+        }
+      }
+      if (!is_access_valid)
+      {
+        std::cerr << "Semantic Error: Member '" << member << "' of class '"
+                  << obj_type << "' is private and can only be modified on 'this' within the class." << std::endl;
+        exit(1);
+      }
+    }
+
+    std::string expected_type = info.field_types[member];
+    expr->value_expression->accept(this);
+    std::string assigned_type = last_evaluated_type;
+
+    if (!can_assign(expected_type, assigned_type))
+    {
+      std::cerr << "Type Error: Cannot assign '" << assigned_type << "' to field '"
+                << member << "' of type '" << expected_type << "'." << std::endl;
+      exit(1);
+    }
+
+    last_evaluated_type = assigned_type;
   }
 
   void visit(EXPRESSION_STATEMENT *statement) override { statement->expression->accept(this); }

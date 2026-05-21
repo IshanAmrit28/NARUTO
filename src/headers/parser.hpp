@@ -71,21 +71,104 @@ private:
 
   STATEMENT *parse_declaration()
   {
+    if (match_types({TOKEN_CLASS}))
+      return parse_class_declaration();
+
+    if (match_types({TOKEN_STRUCT}))
+      return parse_struct_declaration();
+
     if (match_types({TOKEN_FUNCTION}))
       return parse_function_declaration();
 
     bool is_const_decl = match_types({TOKEN_CONST});
 
-    // Lookahead to see if we are declaring a variable (e.g., "int x")
-    if (is_data_type(peek_current()->TYPE))
+    // Lookahead to see if we are declaring a variable (e.g., "int x" or "Location loc")
+    if (is_data_type(peek_current()->TYPE) ||
+        (peek_current()->TYPE == TOKEN_ID &&
+         current_position + 1 < token_stream.size() &&
+         (token_stream[current_position + 1]->TYPE == TOKEN_ID || token_stream[current_position + 1]->TYPE == TOKEN_OPEN_BRACKET)))
+    {
       return parse_variable_declaration(is_const_decl);
+    }
 
     return parse_statement();
   }
 
+  STATEMENT *parse_class_declaration()
+  {
+    Token *name = consume_token(TOKEN_ID, "Expected class name.");
+    Token superclass;
+    superclass.TYPE = TOKEN_NULL;
+    superclass.VALUE = "";
+    if (match_types({TOKEN_EXTENDS}))
+    {
+      Token *sup = consume_token(TOKEN_ID, "Expected superclass name after 'extends'.");
+      superclass = *sup;
+    }
+    consume_token(TOKEN_OPEN_BRACE, "Expected '{' before class body.");
+
+    std::vector<VARIABLE_DECLARATION_STATEMENT *> fields;
+    std::vector<FUNCTION_DECLARATION_STATEMENT *> methods;
+    std::unordered_map<std::string, bool> member_privacy;
+
+    while (!check_type(TOKEN_CLOSE_BRACE) && !is_at_end())
+    {
+      // Optional access modifiers
+      bool is_public = true;
+      if (match_types({TOKEN_PUBLIC}))
+        is_public = true;
+      else if (match_types({TOKEN_PRIVATE}))
+        is_public = false;
+
+      if (match_types({TOKEN_FUNCTION}))
+      {
+        auto method = (FUNCTION_DECLARATION_STATEMENT *)parse_function_declaration();
+        methods.push_back(method);
+        member_privacy[method->name_token.VALUE] = !is_public;
+      }
+      else if (is_data_type(peek_current()->TYPE) || peek_current()->TYPE == TOKEN_ID)
+      {
+        auto field = (VARIABLE_DECLARATION_STATEMENT *)parse_variable_declaration(false);
+        fields.push_back(field);
+        member_privacy[field->name_token.VALUE] = !is_public;
+      }
+      else
+      {
+        std::cerr << "Expected class member declaration at line " << peek_current()->line << " Found: " << peek_current()->VALUE << std::endl;
+        exit(1);
+      }
+    }
+    consume_token(TOKEN_CLOSE_BRACE, "Expected '}' after class body.");
+    auto class_decl = new CLASS_DECLARATION_STATEMENT(*name, superclass, fields, methods);
+    class_decl->is_private = member_privacy;
+    return class_decl;
+  }
+
+  STATEMENT *parse_struct_declaration()
+  {
+    Token *name = consume_token(TOKEN_ID, "Expected struct name.");
+    consume_token(TOKEN_OPEN_BRACE, "Expected '{' before struct body.");
+
+    std::vector<VARIABLE_DECLARATION_STATEMENT *> fields;
+    while (!check_type(TOKEN_CLOSE_BRACE) && !is_at_end())
+    {
+      if (is_data_type(peek_current()->TYPE) || peek_current()->TYPE == TOKEN_ID)
+      {
+        fields.push_back((VARIABLE_DECLARATION_STATEMENT *)parse_variable_declaration(false));
+      }
+      else
+      {
+        std::cerr << "Expected struct field at line " << peek_current()->line << " Found: " << peek_current()->VALUE << std::endl;
+        exit(1);
+      }
+    }
+    consume_token(TOKEN_CLOSE_BRACE, "Expected '}' after struct body.");
+    return new STRUCT_DECLARATION_STATEMENT(*name, fields);
+  }
+
   STATEMENT *parse_function_declaration()
   {
-    if (!is_data_type(peek_current()->TYPE))
+    if (!is_data_type(peek_current()->TYPE) && peek_current()->TYPE != TOKEN_ID)
     {
       std::cerr << "Expected return type." << std::endl;
       exit(1);
@@ -99,12 +182,17 @@ private:
     {
       do
       {
-        if (!is_data_type(peek_current()->TYPE))
+        if (!is_data_type(peek_current()->TYPE) && peek_current()->TYPE != TOKEN_ID)
         {
           std::cerr << "Expected param type." << std::endl;
           exit(1);
         }
         Token *p_type = advance_token();
+        if (match_types({TOKEN_OPEN_BRACKET}))
+        {
+          consume_token(TOKEN_CLOSE_BRACKET, "Expected ']'.");
+          p_type->VALUE += "[]";
+        }
         Token *p_name = consume_token(TOKEN_ID, "Expected param name.");
         parameters.push_back({*p_type, *p_name});
       } while (match_types({TOKEN_COMMA}));
@@ -221,8 +309,13 @@ private:
     // Parse Initializer
     if (!match_types({TOKEN_SEMICOLON}))
     {
-      if (is_data_type(peek_current()->TYPE))
+      if (is_data_type(peek_current()->TYPE) ||
+          (peek_current()->TYPE == TOKEN_ID &&
+           current_position + 1 < token_stream.size() &&
+           (token_stream[current_position + 1]->TYPE == TOKEN_ID || token_stream[current_position + 1]->TYPE == TOKEN_OPEN_BRACKET)))
+      {
         initializer = parse_variable_declaration(false);
+      }
       else
         initializer = parse_expression_statement();
     }
@@ -395,6 +488,39 @@ private:
         return new ARRAY_ASSIGNMENT_EXPRESSION(arrAcc->array_expression, arrAcc->index_expression, value);
       }
 
+      // CASE 3: Assigning to a Member (obj.field = 10)
+      else if (auto get_expr = dynamic_cast<GET_EXPRESSION *>(expr))
+      {
+        if (op.TYPE != TOKEN_EQUALS)
+        {
+          // Desugar to compound assignment: obj.field = obj.field + 10
+          enum type bin_type;
+          switch (op.TYPE)
+          {
+          case TOKEN_PLUS_EQUALS:
+            bin_type = TOKEN_PLUS;
+            break;
+          case TOKEN_MINUS_EQUALS:
+            bin_type = TOKEN_MINUS;
+            break;
+          case TOKEN_ASTERISK_EQUALS:
+            bin_type = TOKEN_ASTERISK;
+            break;
+          case TOKEN_SLASH_EQUALS:
+            bin_type = TOKEN_SLASH;
+            break;
+          default:
+            bin_type = TOKEN_PLUS;
+          }
+          Token bin_token = op;
+          bin_token.TYPE = bin_type;
+
+          EXPRESSION *rightSideRead = new GET_EXPRESSION(get_expr->object_expression, get_expr->member_name);
+          value = new BINARY_EXPRESSION(rightSideRead, bin_token, value);
+        }
+        return new SET_EXPRESSION(get_expr->object_expression, get_expr->member_name, value);
+      }
+
       std::cerr << "Invalid assignment target." << std::endl;
       exit(1);
     }
@@ -560,6 +686,12 @@ private:
         consume_token(TOKEN_CLOSE_BRACKET, "Expected ']'.");
         expr = new ARRAY_ACCESS_EXPRESSION(expr, index);
       }
+      else if (match_types({TOKEN_DOT}))
+      {
+        // Dot Operator for member access
+        Token *member = consume_token(TOKEN_ID, "Expected property name after '.'.");
+        expr = new GET_EXPRESSION(expr, *member);
+      }
       else if (match_types({TOKEN_INCREMENT, TOKEN_DECREMENT}))
       {
         // [NEW] Handle Postfix Increment/Decrement (i++, i--)
@@ -577,6 +709,29 @@ private:
     // Boolean & Null Literals
     if (match_types({TOKEN_FALSE, TOKEN_TRUE, TOKEN_NULL, TOKEN_INT_LITERAL, TOKEN_FLOAT_LITERAL, TOKEN_STRING_LITERAL, TOKEN_CHAR_LITERAL}))
       return new LITERAL_EXPRESSION(*peek_previous());
+
+    // Instantiation: new Shinobi(...)
+    if (match_types({TOKEN_NEW}))
+    {
+      Token *class_name = consume_token(TOKEN_ID, "Expected class name after 'new'.");
+      consume_token(TOKEN_OPEN_PAREN, "Expected '('.");
+      std::vector<EXPRESSION *> args;
+      if (!check_type(TOKEN_CLOSE_PAREN))
+      {
+        do
+        {
+          args.push_back(parse_expression_logic());
+        } while (match_types({TOKEN_COMMA}));
+      }
+      consume_token(TOKEN_CLOSE_PAREN, "Expected ')'.");
+      return new NEW_EXPRESSION(*class_name, args);
+    }
+
+    // Self reference: this
+    if (match_types({TOKEN_THIS}))
+    {
+      return new VARIABLE_EXPRESSION(*peek_previous());
+    }
 
     // Variables
     if (match_types({TOKEN_ID}))

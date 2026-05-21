@@ -3,9 +3,15 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include "tokens.hpp" // Corrected
 
 class AST_VISITOR;
+class CLASS_DECLARATION_STATEMENT;
+class STRUCT_DECLARATION_STATEMENT;
+class NEW_EXPRESSION;
+class GET_EXPRESSION;
+class SET_EXPRESSION;
 
 // --- BASE CLASSES ---
 class AST_NODE
@@ -153,6 +159,37 @@ public:
   void accept(AST_VISITOR *visitor) override;
 };
 
+class NEW_EXPRESSION : public EXPRESSION
+{
+public:
+  Token class_name;
+  std::vector<EXPRESSION *> arguments;
+  NEW_EXPRESSION(Token c, std::vector<EXPRESSION *> args)
+      : class_name(c), arguments(args) {}
+  void accept(AST_VISITOR *visitor) override;
+};
+
+class GET_EXPRESSION : public EXPRESSION
+{
+public:
+  EXPRESSION *object_expression;
+  Token member_name;
+  GET_EXPRESSION(EXPRESSION *obj, Token mem)
+      : object_expression(obj), member_name(mem) {}
+  void accept(AST_VISITOR *visitor) override;
+};
+
+class SET_EXPRESSION : public EXPRESSION
+{
+public:
+  EXPRESSION *object_expression;
+  Token member_name;
+  EXPRESSION *value_expression;
+  SET_EXPRESSION(EXPRESSION *obj, Token mem, EXPRESSION *val)
+      : object_expression(obj), member_name(mem), value_expression(val) {}
+  void accept(AST_VISITOR *visitor) override;
+};
+
 // ==========================================
 //          STATEMENT NODES
 // ==========================================
@@ -282,6 +319,31 @@ public:
   void accept(AST_VISITOR *visitor) override;
 };
 
+class CLASS_DECLARATION_STATEMENT : public STATEMENT
+{
+public:
+  Token name_token;
+  Token superclass_token; // holds parent class name if any, else empty/TOKEN_NULL
+  std::vector<VARIABLE_DECLARATION_STATEMENT *> fields;
+  std::vector<FUNCTION_DECLARATION_STATEMENT *> methods;
+  std::unordered_map<std::string, bool> is_private;
+  CLASS_DECLARATION_STATEMENT(Token n, Token s,
+                              std::vector<VARIABLE_DECLARATION_STATEMENT *> f,
+                              std::vector<FUNCTION_DECLARATION_STATEMENT *> m)
+      : name_token(n), superclass_token(s), fields(f), methods(m) {}
+  void accept(AST_VISITOR *visitor) override;
+};
+
+class STRUCT_DECLARATION_STATEMENT : public STATEMENT
+{
+public:
+  Token name_token;
+  std::vector<VARIABLE_DECLARATION_STATEMENT *> fields;
+  STRUCT_DECLARATION_STATEMENT(Token n, std::vector<VARIABLE_DECLARATION_STATEMENT *> f)
+      : name_token(n), fields(f) {}
+  void accept(AST_VISITOR *visitor) override;
+};
+
 // ==========================================
 //          VISITOR INTERFACE
 // ==========================================
@@ -301,6 +363,9 @@ public:
   virtual void visit(ARRAY_ACCESS_EXPRESSION *expression) = 0;
   virtual void visit(ARRAY_ASSIGNMENT_EXPRESSION *expression) = 0;
   virtual void visit(ASSIGNMENT_EXPRESSION *expression) = 0;
+  virtual void visit(NEW_EXPRESSION *expression) = 0;
+  virtual void visit(GET_EXPRESSION *expression) = 0;
+  virtual void visit(SET_EXPRESSION *expression) = 0;
 
   virtual void visit(EXPRESSION_STATEMENT *statement) = 0;
   virtual void visit(PRINT_STATEMENT *statement) = 0;
@@ -314,6 +379,8 @@ public:
   virtual void visit(CONTINUE_STATEMENT *statement) = 0;
   virtual void visit(RETURN_STATEMENT *statement) = 0;
   virtual void visit(FUNCTION_DECLARATION_STATEMENT *statement) = 0;
+  virtual void visit(CLASS_DECLARATION_STATEMENT *statement) = 0;
+  virtual void visit(STRUCT_DECLARATION_STATEMENT *statement) = 0;
 };
 
 // Inline Implementations
@@ -330,6 +397,9 @@ inline void ARRAY_LITERAL_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void ARRAY_ACCESS_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void ARRAY_ASSIGNMENT_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void ASSIGNMENT_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
+inline void NEW_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
+inline void GET_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
+inline void SET_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void EXPRESSION_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
 inline void PRINT_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
 inline void VARIABLE_DECLARATION_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
@@ -342,5 +412,7 @@ inline void BREAK_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
 inline void CONTINUE_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
 inline void RETURN_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
 inline void FUNCTION_DECLARATION_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
+inline void CLASS_DECLARATION_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
+inline void STRUCT_DECLARATION_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
 
 #endif

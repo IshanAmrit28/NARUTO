@@ -98,6 +98,16 @@ enum type
   TOKEN_CASE,
   TOKEN_DEFAULT,
 
+  // --- OOP KEYWORDS ---
+  TOKEN_CLASS,
+  TOKEN_STRUCT,
+  TOKEN_NEW,
+  TOKEN_THIS,
+  TOKEN_SUPER,
+  TOKEN_EXTENDS,
+  TOKEN_PUBLIC,
+  TOKEN_PRIVATE,
+
   TOKEN_EOF
 };
 
@@ -270,6 +280,24 @@ std::string typeToString(enum type TYPE)
     return "TOKEN_CASE";
   case TOKEN_DEFAULT:
     return "TOKEN_DEFAULT";
+
+  // --- OOP KEYWORDS ---
+  case TOKEN_CLASS:
+    return "TOKEN_CLASS";
+  case TOKEN_STRUCT:
+    return "TOKEN_STRUCT";
+  case TOKEN_NEW:
+    return "TOKEN_NEW";
+  case TOKEN_THIS:
+    return "TOKEN_THIS";
+  case TOKEN_SUPER:
+    return "TOKEN_SUPER";
+  case TOKEN_EXTENDS:
+    return "TOKEN_EXTENDS";
+  case TOKEN_PUBLIC:
+    return "TOKEN_PUBLIC";
+  case TOKEN_PRIVATE:
+    return "TOKEN_PRIVATE";
 
   case TOKEN_EOF:
     return "TOKEN_EOF";

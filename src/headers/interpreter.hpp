@@ -8,6 +8,10 @@
 #include <string>
 #include <cmath>
 #include <algorithm> // for std::stol
+#include <memory>
+
+class RuntimeObject;
+class RuntimeStruct;
 
 struct RuntimeValue
 {
@@ -18,13 +22,17 @@ struct RuntimeValue
     STRING,
     BOOL,
     VOID,
-    ARRAY
+    ARRAY,
+    OBJECT,
+    STRUCT
   } type;
   long long int_val = 0;
   double float_val = 0.0;
   std::string string_val = "";
   bool bool_val = false;
   std::vector<RuntimeValue> array_elements;
+  std::shared_ptr<RuntimeObject> object_val = nullptr;
+  std::shared_ptr<RuntimeStruct> struct_val = nullptr;
 
   static RuntimeValue Integer(long long v)
   {
@@ -67,7 +75,39 @@ struct RuntimeValue
     r.array_elements = v;
     return r;
   }
+  static RuntimeValue copy_value(RuntimeValue val);
 };
+
+class RuntimeObject
+{
+public:
+  std::string class_name;
+  std::unordered_map<std::string, RuntimeValue> fields;
+
+  RuntimeObject(std::string name) : class_name(name) {}
+};
+
+class RuntimeStruct
+{
+public:
+  std::string struct_name;
+  std::unordered_map<std::string, RuntimeValue> fields;
+
+  RuntimeStruct(std::string name) : struct_name(name) {}
+};
+
+inline RuntimeValue RuntimeValue::copy_value(RuntimeValue val)
+{
+  if (val.type == STRUCT && val.struct_val != nullptr)
+  {
+    auto cloned_struct = std::make_shared<RuntimeStruct>(val.struct_val->struct_name);
+    cloned_struct->fields = val.struct_val->fields;
+    RuntimeValue new_val = val;
+    new_val.struct_val = cloned_struct;
+    return new_val;
+  }
+  return val;
+}
 
 struct ReturnException
 {
@@ -88,13 +128,31 @@ public:
   ENVIRONMENT *parent = nullptr;
   std::unordered_map<std::string, RuntimeValue> variables;
   ENVIRONMENT(ENVIRONMENT *p = nullptr) : parent(p) {}
-  void define(std::string name, RuntimeValue val) { variables[name] = val; }
+  void define(std::string name, RuntimeValue val) { variables[name] = RuntimeValue::copy_value(val); }
   void assign(std::string name, RuntimeValue val)
   {
     if (variables.count(name))
     {
-      variables[name] = val;
+      variables[name] = RuntimeValue::copy_value(val);
       return;
+    }
+    ENVIRONMENT *curr = this;
+    while (curr)
+    {
+      if (curr->variables.count("this"))
+      {
+        auto &this_val = curr->variables["this"];
+        if (this_val.type == RuntimeValue::OBJECT && this_val.object_val != nullptr)
+        {
+          if (this_val.object_val->fields.count(name))
+          {
+            this_val.object_val->fields[name] = RuntimeValue::copy_value(val);
+            return;
+          }
+        }
+        break;
+      }
+      curr = curr->parent;
     }
     if (parent)
     {
@@ -108,6 +166,23 @@ public:
   {
     if (variables.count(name))
       return variables[name];
+    ENVIRONMENT *curr = this;
+    while (curr)
+    {
+      if (curr->variables.count("this"))
+      {
+        auto &this_val = curr->variables["this"];
+        if (this_val.type == RuntimeValue::OBJECT && this_val.object_val != nullptr)
+        {
+          if (this_val.object_val->fields.count(name))
+          {
+            return this_val.object_val->fields[name];
+          }
+        }
+        break;
+      }
+      curr = curr->parent;
+    }
     if (parent)
       return parent->get(name);
     std::cerr << "Runtime Error: Undefined variable '" << name << "'." << std::endl;
@@ -118,10 +193,26 @@ public:
 class INTERPRETER : public AST_VISITOR
 {
 private:
+  struct ClassDefinition
+  {
+    std::string name;
+    std::string superclass;
+    std::vector<VARIABLE_DECLARATION_STATEMENT *> fields;
+    std::unordered_map<std::string, FUNCTION_DECLARATION_STATEMENT *> methods;
+  };
+
+  struct StructDefinition
+  {
+    std::string name;
+    std::vector<VARIABLE_DECLARATION_STATEMENT *> fields;
+  };
+
   ENVIRONMENT *current_environment;
   ENVIRONMENT *global_environment;
   RuntimeValue last_evaluated_value;
   std::unordered_map<std::string, FUNCTION_DECLARATION_STATEMENT *> functions;
+  std::unordered_map<std::string, ClassDefinition> classes;
+  std::unordered_map<std::string, StructDefinition> structs;
 
   bool is_truthy(RuntimeValue v)
   {
@@ -510,28 +601,125 @@ public:
 
   void visit(CALL_EXPRESSION *expr) override
   {
-    VARIABLE_EXPRESSION *func_var = dynamic_cast<VARIABLE_EXPRESSION *>(expr->callee);
-    FUNCTION_DECLARATION_STATEMENT *func = functions[func_var->name.VALUE];
-    std::vector<RuntimeValue> args;
-    for (auto arg : expr->arguments)
+    if (auto get_expr = dynamic_cast<GET_EXPRESSION *>(expr->callee))
     {
-      arg->accept(this);
-      args.push_back(last_evaluated_value);
+      get_expr->object_expression->accept(this);
+      RuntimeValue obj_val = last_evaluated_value;
+
+      if (obj_val.type != RuntimeValue::OBJECT || obj_val.object_val == nullptr)
+      {
+        std::cerr << "Runtime Error: Cannot call method on non-object." << std::endl;
+        exit(1);
+      }
+
+      std::string class_name = obj_val.object_val->class_name;
+      if (!classes.count(class_name))
+      {
+        std::cerr << "Runtime Error: Class '" << class_name << "' is undefined." << std::endl;
+        exit(1);
+      }
+
+      auto &cls = classes[class_name];
+      std::string method_name = get_expr->member_name.VALUE;
+      if (!cls.methods.count(method_name))
+      {
+        std::cerr << "Runtime Error: Method '" << method_name << "' not found on class '" << class_name << "'." << std::endl;
+        exit(1);
+      }
+
+      auto method_stmt = cls.methods[method_name];
+
+      std::vector<RuntimeValue> args;
+      for (auto arg : expr->arguments)
+      {
+        arg->accept(this);
+        args.push_back(last_evaluated_value);
+      }
+
+      ENVIRONMENT *prev = current_environment;
+      current_environment = new ENVIRONMENT(global_environment);
+      current_environment->define("this", obj_val);
+
+      for (size_t i = 0; i < method_stmt->parameters.size(); i++)
+      {
+        current_environment->define(method_stmt->parameters[i].name_token.VALUE, args[i]);
+      }
+
+      try
+      {
+        method_stmt->body_block->accept(this);
+        last_evaluated_value = RuntimeValue::Void();
+      }
+      catch (const ReturnException &ret)
+      {
+        last_evaluated_value = ret.value;
+      }
+
+      ENVIRONMENT *temp = current_environment;
+      current_environment = prev;
+      delete temp;
     }
-    ENVIRONMENT *prev = current_environment;
-    current_environment = new ENVIRONMENT(global_environment);
-    for (size_t i = 0; i < func->parameters.size(); i++)
-      current_environment->define(func->parameters[i].name_token.VALUE, args[i]);
-    try
+    else if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION *>(expr->callee))
     {
-      func->body_block->accept(this);
-      last_evaluated_value = RuntimeValue::Void();
+      std::string name = var_expr->name.VALUE;
+      if (structs.count(name))
+      {
+        auto &str_def = structs[name];
+        std::vector<RuntimeValue> args;
+        for (auto arg : expr->arguments)
+        {
+          arg->accept(this);
+          args.push_back(last_evaluated_value);
+        }
+
+        auto struct_obj = std::make_shared<RuntimeStruct>(name);
+        for (size_t i = 0; i < str_def.fields.size(); i++)
+        {
+          struct_obj->fields[str_def.fields[i]->name_token.VALUE] = args[i];
+        }
+
+        RuntimeValue val;
+        val.type = RuntimeValue::STRUCT;
+        val.struct_val = struct_obj;
+        last_evaluated_value = val;
+      }
+      else if (functions.count(name))
+      {
+        auto func = functions[name];
+        std::vector<RuntimeValue> args;
+        for (auto arg : expr->arguments)
+        {
+          arg->accept(this);
+          args.push_back(last_evaluated_value);
+        }
+        ENVIRONMENT *prev = current_environment;
+        current_environment = new ENVIRONMENT(global_environment);
+        for (size_t i = 0; i < func->parameters.size(); i++)
+          current_environment->define(func->parameters[i].name_token.VALUE, args[i]);
+        try
+        {
+          func->body_block->accept(this);
+          last_evaluated_value = RuntimeValue::Void();
+        }
+        catch (const ReturnException &ret)
+        {
+          last_evaluated_value = ret.value;
+        }
+        ENVIRONMENT *temp = current_environment;
+        current_environment = prev;
+        delete temp;
+      }
+      else
+      {
+        std::cerr << "Runtime Error: Undefined function or struct constructor '" << name << "'." << std::endl;
+        exit(1);
+      }
     }
-    catch (const ReturnException &ret)
+    else
     {
-      last_evaluated_value = ret.value;
+      std::cerr << "Runtime Error: Callee is not callable." << std::endl;
+      exit(1);
     }
-    current_environment = prev;
   }
 
   void visit(RETURN_STATEMENT *stmt) override
@@ -712,6 +900,233 @@ public:
         last_evaluated_value.int_val *= -1;
       else if (last_evaluated_value.type == RuntimeValue::FLOAT)
         last_evaluated_value.float_val *= -1.0;
+    }
+  }
+
+  void visit(CLASS_DECLARATION_STATEMENT *stmt) override
+  {
+    ClassDefinition cls;
+    cls.name = stmt->name_token.VALUE;
+    cls.superclass = stmt->superclass_token.VALUE;
+
+    if (!cls.superclass.empty() && cls.superclass != "null")
+    {
+      if (classes.count(cls.superclass))
+      {
+        auto &parent = classes[cls.superclass];
+        cls.fields = parent.fields;
+        cls.methods = parent.methods;
+      }
+      else
+      {
+        std::cerr << "Runtime Error: Superclass '" << cls.superclass << "' is undefined." << std::endl;
+        exit(1);
+      }
+    }
+
+    for (auto field : stmt->fields)
+    {
+      bool found = false;
+      for (auto &existing_field : cls.fields)
+      {
+        if (existing_field->name_token.VALUE == field->name_token.VALUE)
+        {
+          existing_field = field;
+          found = true;
+          break;
+        }
+      }
+      if (!found)
+      {
+        cls.fields.push_back(field);
+      }
+    }
+
+    for (auto method : stmt->methods)
+    {
+      cls.methods[method->name_token.VALUE] = method;
+    }
+
+    classes[cls.name] = cls;
+  }
+
+  void visit(STRUCT_DECLARATION_STATEMENT *stmt) override
+  {
+    StructDefinition str;
+    str.name = stmt->name_token.VALUE;
+    str.fields = stmt->fields;
+    structs[str.name] = str;
+  }
+
+  void visit(NEW_EXPRESSION *expr) override
+  {
+    std::string class_name = expr->class_name.VALUE;
+    if (!classes.count(class_name))
+    {
+      std::cerr << "Runtime Error: Undefined class '" << class_name << "'." << std::endl;
+      exit(1);
+    }
+
+    auto &cls = classes[class_name];
+    auto obj = std::make_shared<RuntimeObject>(class_name);
+
+    for (auto field_stmt : cls.fields)
+    {
+      std::string type = field_stmt->type_token.VALUE;
+      RuntimeValue default_val = RuntimeValue::Void();
+      if (type == "int" || type == "byte" || type == "short" || type == "long")
+        default_val = RuntimeValue::Integer(0);
+      else if (type == "float" || type == "double")
+        default_val = RuntimeValue::Float(0.0);
+      else if (type == "string")
+        default_val = RuntimeValue::String("");
+      else if (type == "bool")
+        default_val = RuntimeValue::Bool(false);
+      
+      obj->fields[field_stmt->name_token.VALUE] = default_val;
+    }
+
+    ENVIRONMENT *sandbox_env = new ENVIRONMENT(global_environment);
+    RuntimeValue self_val;
+    self_val.type = RuntimeValue::OBJECT;
+    self_val.object_val = obj;
+    sandbox_env->define("this", self_val);
+
+    ENVIRONMENT *prev_env = current_environment;
+    current_environment = sandbox_env;
+
+    for (auto field_stmt : cls.fields)
+    {
+      if (field_stmt->initializer_expression)
+      {
+        field_stmt->initializer_expression->accept(this);
+        obj->fields[field_stmt->name_token.VALUE] = last_evaluated_value;
+      }
+    }
+
+    current_environment = prev_env;
+    delete sandbox_env;
+
+    if (cls.methods.count("init"))
+    {
+      auto init_method = cls.methods["init"];
+      
+      std::vector<RuntimeValue> args;
+      for (auto arg : expr->arguments)
+      {
+        arg->accept(this);
+        args.push_back(last_evaluated_value);
+      }
+
+      ENVIRONMENT *ctor_env = new ENVIRONMENT(global_environment);
+      ctor_env->define("this", self_val);
+      for (size_t i = 0; i < init_method->parameters.size(); ++i)
+      {
+        ctor_env->define(init_method->parameters[i].name_token.VALUE, args[i]);
+      }
+
+      ENVIRONMENT *prev = current_environment;
+      current_environment = ctor_env;
+      try
+      {
+        init_method->body_block->accept(this);
+      }
+      catch (const ReturnException &)
+      {
+      }
+      current_environment = prev;
+      delete ctor_env;
+    }
+
+    last_evaluated_value = self_val;
+  }
+
+  void visit(GET_EXPRESSION *expr) override
+  {
+    expr->object_expression->accept(this);
+    RuntimeValue obj_val = last_evaluated_value;
+
+    if (obj_val.type == RuntimeValue::OBJECT && obj_val.object_val != nullptr)
+    {
+      std::string member = expr->member_name.VALUE;
+      if (obj_val.object_val->fields.count(member))
+      {
+        last_evaluated_value = obj_val.object_val->fields[member];
+      }
+      else
+      {
+        std::string class_name = obj_val.object_val->class_name;
+        if (classes.count(class_name) && classes[class_name].methods.count(member))
+        {
+          last_evaluated_value = RuntimeValue::Void();
+        }
+        else
+        {
+          std::cerr << "Runtime Error: Member '" << member << "' not found on object of class '" << class_name << "'." << std::endl;
+          exit(1);
+        }
+      }
+    }
+    else if (obj_val.type == RuntimeValue::STRUCT && obj_val.struct_val != nullptr)
+    {
+      std::string member = expr->member_name.VALUE;
+      if (obj_val.struct_val->fields.count(member))
+      {
+        last_evaluated_value = obj_val.struct_val->fields[member];
+      }
+      else
+      {
+        std::cerr << "Runtime Error: Field '" << member << "' not found on struct '" << obj_val.struct_val->struct_name << "'." << std::endl;
+        exit(1);
+      }
+    }
+    else
+    {
+      std::cerr << "Runtime Error: Cannot get member of non-object/non-struct." << std::endl;
+      exit(1);
+    }
+  }
+
+  void visit(SET_EXPRESSION *expr) override
+  {
+    expr->object_expression->accept(this);
+    RuntimeValue obj_val = last_evaluated_value;
+
+    expr->value_expression->accept(this);
+    RuntimeValue assigned_val = last_evaluated_value;
+
+    if (obj_val.type == RuntimeValue::OBJECT && obj_val.object_val != nullptr)
+    {
+      std::string member = expr->member_name.VALUE;
+      if (obj_val.object_val->fields.count(member))
+      {
+        obj_val.object_val->fields[member] = RuntimeValue::copy_value(assigned_val);
+        last_evaluated_value = assigned_val;
+      }
+      else
+      {
+        std::cerr << "Runtime Error: Field '" << member << "' not found on object of class '" << obj_val.object_val->class_name << "'." << std::endl;
+        exit(1);
+      }
+    }
+    else if (obj_val.type == RuntimeValue::STRUCT && obj_val.struct_val != nullptr)
+    {
+      std::string member = expr->member_name.VALUE;
+      if (obj_val.struct_val->fields.count(member))
+      {
+        obj_val.struct_val->fields[member] = RuntimeValue::copy_value(assigned_val);
+        last_evaluated_value = assigned_val;
+      }
+      else
+      {
+        std::cerr << "Runtime Error: Field '" << member << "' not found on struct '" << obj_val.struct_val->struct_name << "'." << std::endl;
+        exit(1);
+      }
+    }
+    else
+    {
+      std::cerr << "Runtime Error: Cannot set member of non-object/non-struct." << std::endl;
+      exit(1);
     }
   }
 };

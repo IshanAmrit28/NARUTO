@@ -1,0 +1,23 @@
+print "--- TEST: Structs ---";
+
+struct Location {
+    int x;
+    int y;
+}
+
+// 1. Instantiation via positional constructor
+Location loc = Location(10, 20);
+print "loc.x should be 10: " + loc.x;
+print "loc.y should be 20: " + loc.y;
+
+// 2. Field mutation
+loc.x = 42;
+print "loc.x after mutation should be 42: " + loc.x;
+
+// 3. Value-type copy semantics validation
+Location loc2 = loc;
+loc2.x = 99;
+print "loc.x should remain 42: " + loc.x;
+print "loc2.x should be 99: " + loc2.x;
+
+print "Structs test passed!";

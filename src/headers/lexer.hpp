@@ -50,6 +50,16 @@ public:
     keywords["switch"] = TOKEN_SWITCH;
     keywords["case"] = TOKEN_CASE;
     keywords["default"] = TOKEN_DEFAULT;
+
+    // --- OOP KEYWORDS ---
+    keywords["class"] = TOKEN_CLASS;
+    keywords["struct"] = TOKEN_STRUCT;
+    keywords["new"] = TOKEN_NEW;
+    keywords["this"] = TOKEN_THIS;
+    keywords["super"] = TOKEN_SUPER;
+    keywords["extends"] = TOKEN_EXTENDS;
+    keywords["public"] = TOKEN_PUBLIC;
+    keywords["private"] = TOKEN_PRIVATE;
   }
 
   void error(std::string message)

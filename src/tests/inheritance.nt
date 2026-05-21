@@ -1,0 +1,36 @@
+print "--- TEST: Inheritance & Polymorphism ---";
+
+class Shinobi {
+    public string name;
+
+    function void init(string name) {
+        this.name = name;
+    }
+
+    public function void fight() {
+        print this.name + " fights!";
+    }
+}
+
+class Genin extends Shinobi {
+    public string squad;
+
+    function void init(string name, string squad) {
+        this.name = name;
+        this.squad = squad;
+    }
+
+    public function void fight() {
+        print this.name + " fights with squad " + this.squad;
+    }
+}
+
+// 1. Superclass instance
+Shinobi s = new Shinobi("Kakashi");
+s.fight();
+
+// 2. Subclass instance assigned to superclass variable (polymorphism)
+Shinobi g = new Genin("Sasuke", "Team 7");
+g.fight();
+
+print "Inheritance test passed!";

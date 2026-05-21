@@ -1,0 +1,31 @@
+print "--- TEST: Classes ---";
+
+class Shinobi {
+    public string name;
+    private int chakra;
+    public string village = "Konoha";
+
+    function void init(string name, int chakra) {
+        this.name = name;
+        this.chakra = chakra;
+    }
+
+    public function void charge(int amount) {
+        this.chakra = this.chakra + amount;
+    }
+
+    public function int getChakra() {
+        return this.chakra;
+    }
+}
+
+// 1. Instantiation
+Shinobi naruto = new Shinobi("Naruto", 100);
+print "naruto.name should be Naruto: " + naruto.name;
+print "naruto.village should be Konoha: " + naruto.village;
+
+// 2. Encapsulated access and method calls
+naruto.charge(50);
+print "naruto.chakra after charge should be 150: " + naruto.getChakra();
+
+print "Classes test passed!";

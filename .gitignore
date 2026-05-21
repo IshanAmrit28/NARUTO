@@ -1,1 +1,15 @@
+# Node modules
+node_modules
+playground/node_modules
+
+# Temp files
+playground/temp/
+
+# Compiled Binaries
+*.exe
+naruto
+playground/naruto
+playground/naruto.exe
+
+# VSCode config
 .vscode/
