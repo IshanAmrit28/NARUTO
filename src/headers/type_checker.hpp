@@ -111,7 +111,7 @@ private:
 
     if (t_rank > 0 && s_rank > 0)
     {
-      return t_rank >= s_rank;
+      return true; // Python-like implicit numeric conversion
     }
     return false;
   }
@@ -513,6 +513,19 @@ public:
     if (auto v = dynamic_cast<VARIABLE_EXPRESSION *>(expr->callee))
     {
       std::string name = v->name.VALUE;
+      
+      if (name == "int" || name == "float" || name == "string")
+      {
+        if (expr->arguments.size() != 1)
+        {
+          std::cerr << "Semantic Error: '" << name << "' conversion expects exactly 1 argument." << std::endl;
+          exit(1);
+        }
+        expr->arguments[0]->accept(this);
+        last_evaluated_type = name;
+        return;
+      }
+
       if (class_registry.count(name))
       {
         ClassTypeInfo info = class_registry[name];

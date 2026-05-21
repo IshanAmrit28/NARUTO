@@ -707,6 +707,30 @@ public:
     else if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION *>(expr->callee))
     {
       std::string name = var_expr->name.VALUE;
+
+      if (name == "int" || name == "float" || name == "string") {
+          expr->arguments[0]->accept(this);
+          RuntimeValue val = last_evaluated_value;
+          
+          if (name == "int") {
+              if (val.type == RuntimeValue::FLOAT) last_evaluated_value = RuntimeValue::Integer(val.float_val);
+              else if (val.type == RuntimeValue::STRING) last_evaluated_value = RuntimeValue::Integer(std::stoll(val.string_val));
+              else if (val.type == RuntimeValue::BOOL) last_evaluated_value = RuntimeValue::Integer(val.bool_val ? 1 : 0);
+              else last_evaluated_value = RuntimeValue::Integer(val.int_val);
+          } else if (name == "float") {
+              if (val.type == RuntimeValue::INT) last_evaluated_value = RuntimeValue::Float(val.int_val);
+              else if (val.type == RuntimeValue::STRING) last_evaluated_value = RuntimeValue::Float(std::stod(val.string_val));
+              else if (val.type == RuntimeValue::BOOL) last_evaluated_value = RuntimeValue::Float(val.bool_val ? 1.0 : 0.0);
+              else last_evaluated_value = RuntimeValue::Float(val.float_val);
+          } else if (name == "string") {
+              if (val.type == RuntimeValue::INT) last_evaluated_value = RuntimeValue::String(std::to_string(val.int_val));
+              else if (val.type == RuntimeValue::FLOAT) last_evaluated_value = RuntimeValue::String(std::to_string(val.float_val));
+              else if (val.type == RuntimeValue::BOOL) last_evaluated_value = RuntimeValue::String(val.bool_val ? "true" : "false");
+              else last_evaluated_value = RuntimeValue::String(val.string_val);
+          }
+          return;
+      }
+
       if (structs.count(name))
       {
         auto &str_def = structs[name];
@@ -945,6 +969,15 @@ public:
         last_evaluated_value.int_val *= -1;
       else if (last_evaluated_value.type == RuntimeValue::FLOAT)
         last_evaluated_value.float_val *= -1.0;
+    }
+    else if (expr->operator_token.TYPE == TOKEN_NOT)
+    {
+      last_evaluated_value = RuntimeValue::Bool(!is_truthy(last_evaluated_value));
+    }
+    else if (expr->operator_token.TYPE == TOKEN_BITWISE_NOT)
+    {
+      if (last_evaluated_value.type == RuntimeValue::INT)
+        last_evaluated_value.int_val = ~last_evaluated_value.int_val;
     }
   }
 

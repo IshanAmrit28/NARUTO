@@ -86,7 +86,8 @@ private:
     if (is_data_type(peek_current()->TYPE) ||
         (peek_current()->TYPE == TOKEN_ID &&
          current_position + 1 < token_stream.size() &&
-         (token_stream[current_position + 1]->TYPE == TOKEN_ID || token_stream[current_position + 1]->TYPE == TOKEN_OPEN_BRACKET)))
+         (token_stream[current_position + 1]->TYPE == TOKEN_ID || 
+         (token_stream[current_position + 1]->TYPE == TOKEN_OPEN_BRACKET && current_position + 2 < token_stream.size() && token_stream[current_position + 2]->TYPE == TOKEN_CLOSE_BRACKET))))
     {
       return parse_variable_declaration(is_const_decl);
     }
@@ -312,7 +313,8 @@ private:
       if (is_data_type(peek_current()->TYPE) ||
           (peek_current()->TYPE == TOKEN_ID &&
            current_position + 1 < token_stream.size() &&
-           (token_stream[current_position + 1]->TYPE == TOKEN_ID || token_stream[current_position + 1]->TYPE == TOKEN_OPEN_BRACKET)))
+           (token_stream[current_position + 1]->TYPE == TOKEN_ID || 
+           (token_stream[current_position + 1]->TYPE == TOKEN_OPEN_BRACKET && current_position + 2 < token_stream.size() && token_stream[current_position + 2]->TYPE == TOKEN_CLOSE_BRACKET))))
       {
         initializer = parse_variable_declaration(false);
       }
@@ -742,6 +744,14 @@ private:
     // Variables
     if (match_types({TOKEN_ID}))
       return new VARIABLE_EXPRESSION(*peek_previous());
+
+    // Type Conversion built-in functions
+    if (match_types({TOKEN_INT_TYPE, TOKEN_FLOAT_TYPE, TOKEN_STRING_TYPE}))
+    {
+      Token type_token = *peek_previous();
+      type_token.TYPE = TOKEN_ID; // Treat type keywords as function names
+      return new VARIABLE_EXPRESSION(type_token);
+    }
 
     // Built-in Input
     if (match_types({TOKEN_INPUT}))

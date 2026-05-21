@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
+import Docs from './components/Docs';
 
 const DEFAULT_CODE = `// Naruto Language Playground
 // Try changing the radius and run the code!
@@ -26,31 +27,40 @@ if (radius > 0) {
 `;
 
 function App() {
-  const [code, setCode] = useState(DEFAULT_CODE);
+  const [view, setView] = useState('docs'); // 'docs' | 'playground'
+  const [mainCode, setMainCode] = useState(DEFAULT_CODE);
+  
+  // If tryCode is a string, the modal is open.
+  const [tryCode, setTryCode] = useState(null); 
   const [isRunning, setIsRunning] = useState(false);
+  
   const terminalRef = useRef(null);
   const xtermRef = useRef(null);
   const wsRef = useRef(null);
   const fitAddonRef = useRef(null);
 
+  const isTerminalVisible = view === 'playground' || tryCode !== null;
+
   useEffect(() => {
+    // Only initialize the terminal when a view requiring it is active
+    if (!isTerminalVisible || !terminalRef.current) return;
+
     // Initialize xterm.js
     const term = new Terminal({
       theme: {
         background: '#0d1117',
         foreground: '#c9d1d9',
-        cursor: '#58a6ff',
+        cursor: '#ff8c00',
       },
       fontFamily: '"Fira Code", monospace',
       fontSize: 14,
-      convertEol: true, // convert \n to \r\n automatically
+      convertEol: true,
     });
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     
     term.open(terminalRef.current);
     
-    // Defer the fit slightly to ensure the DOM is fully painted
     setTimeout(() => {
       try {
         if (fitAddon.proposeDimensions()) {
@@ -67,18 +77,14 @@ function App() {
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    // Handle user typing into the terminal
     term.onData((data) => {
-      // Send user keystrokes to the backend via WebSocket
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        // xterm.js sends \r when Enter is pressed. We need to send \n to the backend process.
         const inputData = data === '\r' ? '\n' : data;
         wsRef.current.send(JSON.stringify({ type: 'input', input: inputData }));
         
-        // Echo back to terminal
         if (data === '\r') {
             term.write('\r\n');
-        } else if (data === '\x7f') { // Handle backspace visual
+        } else if (data === '\x7f') {
             term.write('\b \b');
         } else {
             term.write(data);
@@ -96,9 +102,7 @@ function App() {
       }
     });
 
-    if (terminalRef.current) {
-      resizeObserver.observe(terminalRef.current);
-    }
+    resizeObserver.observe(terminalRef.current);
 
     return () => {
       resizeObserver.disconnect();
@@ -107,17 +111,17 @@ function App() {
         wsRef.current.close();
       }
     };
-  }, []);
+  }, [isTerminalVisible]);
 
   const handleRun = () => {
     if (isRunning) return;
     setIsRunning(true);
     
-    xtermRef.current.clear();
-    xtermRef.current.writeln('Running...\r\n');
+    if (xtermRef.current) {
+        xtermRef.current.clear();
+        xtermRef.current.writeln('Running...\r\n');
+    }
 
-    // Connect to WebSocket server
-    // Prioritize the .env variable, then fallback to automatic detection.
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const autoDetectedUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'ws://localhost:3001'
@@ -125,7 +129,6 @@ function App() {
         
     let wsUrl = import.meta.env.VITE_BACKEND_WS_URL || autoDetectedUrl;
     
-    // Fool-proof check: if we are on HTTPS, the browser absolutely requires WSS (Secure WebSocket)
     if (window.location.protocol === 'https:') {
         wsUrl = wsUrl.trim().replace(/^ws:\/\//i, 'wss://');
     }
@@ -133,24 +136,25 @@ function App() {
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
+    // Use tryCode if modal is open, else mainCode
+    const currentCodeToRun = tryCode !== null ? tryCode : mainCode;
+
     ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'start', code }));
+      ws.send(JSON.stringify({ type: 'start', code: currentCodeToRun }));
     };
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === 'output') {
-        // Output from stdout/stderr of the program
-        // We replace standard newlines with \r\n for xterm to render correctly, but convertEol handles it mostly
-        xtermRef.current.write(msg.data);
+        if (xtermRef.current) xtermRef.current.write(msg.data);
       } else if (msg.type === 'exit') {
-        xtermRef.current.writeln(`\r\n\r\n[Process exited with code ${msg.code}]`);
+        if (xtermRef.current) xtermRef.current.writeln(`\r\n\r\n[Process exited with code ${msg.code}]`);
         setIsRunning(false);
       }
     };
 
     ws.onerror = (error) => {
-      xtermRef.current.writeln('\\r\\nWebSocket error. Is the backend running?');
+      if (xtermRef.current) xtermRef.current.writeln('\r\nWebSocket error. Is the backend running?');
       setIsRunning(false);
     };
 
@@ -159,37 +163,123 @@ function App() {
     };
   };
 
+  const handleTryCode = (code) => {
+    setTryCode(code); // Opens modal
+  };
+
+  const closeTryModal = () => {
+    setTryCode(null);
+  };
+
   return (
-    <div className="playground-container">
-      <header className="header">
-        <div className="logo">🍥 Naruto Playground</div>
-        <button className="run-button" onClick={handleRun} disabled={isRunning}>
-          {isRunning ? 'Running...' : 'Run Code'}
-        </button>
-      </header>
-      
-      <div className="main-content">
-        <div className="editor-pane">
-          <div className="pane-title">Code</div>
-          <Editor
-            height="calc(100vh - 100px)"
-            defaultLanguage="c"
-            theme="vs-dark"
-            value={code}
-            onChange={(value) => setCode(value || '')}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              fontFamily: '"Fira Code", monospace',
-            }}
-          />
+    <div className="app-container">
+      <header className="main-header">
+        <div className="logo-section">
+          <span className="logo-icon">🍥</span>
+          <span className="logo-text">Naruto</span>
         </div>
         
-        <div className="terminal-pane">
-          <div className="pane-title">Interactive Terminal</div>
-          <div className="xterm-container" ref={terminalRef}></div>
+        <nav className="top-nav">
+          <button 
+            className={`nav-btn ${view === 'docs' ? 'active' : ''}`}
+            onClick={() => {
+              setView('docs');
+              setTryCode(null); // Ensure modal is closed if navigating away
+            }}
+          >
+            Documentation
+          </button>
+          <button 
+            className={`nav-btn ${view === 'playground' ? 'active' : ''}`}
+            onClick={() => {
+              setView('playground');
+              setTryCode(null); // Ensure modal is closed if navigating away
+            }}
+          >
+            Playground
+          </button>
+        </nav>
+
+        <div className="header-actions">
+          {view === 'playground' && (
+            <button className="run-button" onClick={handleRun} disabled={isRunning}>
+              {isRunning ? 'Running...' : 'Run Code'}
+            </button>
+          )}
         </div>
-      </div>
+      </header>
+      
+      <main className="main-area">
+        {view === 'docs' ? (
+          <Docs onTryCode={handleTryCode} />
+        ) : (
+          <div className="playground-container">
+            <div className="editor-pane">
+              <div className="pane-title">Code (Main Playground)</div>
+              <Editor
+                height="100%"
+                defaultLanguage="c"
+                theme="vs-dark"
+                value={mainCode}
+                onChange={(value) => setMainCode(value || '')}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  fontFamily: '"Fira Code", monospace',
+                }}
+              />
+            </div>
+            
+            <div className="terminal-pane">
+              <div className="pane-title">Interactive Terminal</div>
+              <div className="xterm-container" ref={terminalRef}></div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Try It Yourself Modal Overlay */}
+      {tryCode !== null && (
+        <div className="try-modal-overlay">
+          <div className="try-modal-content">
+            <div className="try-modal-header">
+              <div className="try-modal-title">
+                🍥 Try it Yourself
+              </div>
+              <div className="try-modal-actions">
+                <button className="run-button" onClick={handleRun} disabled={isRunning} style={{ marginRight: '15px' }}>
+                  {isRunning ? 'Running...' : 'Run Snippet'}
+                </button>
+                <button className="close-modal-btn" onClick={closeTryModal}>
+                  &times; Close
+                </button>
+              </div>
+            </div>
+            <div className="try-modal-body">
+              <div className="editor-pane">
+                <div className="pane-title">Code Snippet</div>
+                <Editor
+                  height="100%"
+                  defaultLanguage="c"
+                  theme="vs-dark"
+                  value={tryCode}
+                  onChange={(value) => setTryCode(value || '')}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    fontFamily: '"Fira Code", monospace',
+                  }}
+                />
+              </div>
+              
+              <div className="terminal-pane">
+                <div className="pane-title">Execution Terminal</div>
+                <div className="xterm-container" ref={terminalRef}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
