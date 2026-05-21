@@ -49,7 +49,18 @@ function App() {
     term.loadAddon(fitAddon);
     
     term.open(terminalRef.current);
-    fitAddon.fit();
+    
+    // Defer the fit slightly to ensure the DOM is fully painted
+    setTimeout(() => {
+      try {
+        if (fitAddon.proposeDimensions()) {
+          fitAddon.fit();
+        }
+      } catch (e) {
+        console.warn('xterm fit error:', e);
+      }
+    }, 50);
+    
     term.writeln('--- NARUTO INTERACTIVE TERMINAL ---');
     term.writeln('Ready to execute code...\r\n');
 
@@ -75,11 +86,22 @@ function App() {
       }
     });
 
-    const handleResize = () => fitAddon.fit();
-    window.addEventListener('resize', handleResize);
+    const resizeObserver = new ResizeObserver(() => {
+      try {
+        if (fitAddon.proposeDimensions()) {
+          fitAddon.fit();
+        }
+      } catch (e) {
+        console.warn('xterm resize fit error:', e);
+      }
+    });
+
+    if (terminalRef.current) {
+      resizeObserver.observe(terminalRef.current);
+    }
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       term.dispose();
       if (wsRef.current) {
         wsRef.current.close();
@@ -101,7 +123,12 @@ function App() {
         ? 'ws://localhost:3001'
         : `${protocol}//${window.location.host}`;
         
-    const wsUrl = import.meta.env.VITE_BACKEND_WS_URL || autoDetectedUrl;
+    let wsUrl = import.meta.env.VITE_BACKEND_WS_URL || autoDetectedUrl;
+    
+    // Fool-proof check: if we are on HTTPS, the browser absolutely requires WSS (Secure WebSocket)
+    if (window.location.protocol === 'https:') {
+        wsUrl = wsUrl.trim().replace(/^ws:\/\//i, 'wss://');
+    }
         
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
