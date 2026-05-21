@@ -222,8 +222,16 @@ print missions[0]; // Prints 1
 // Updating array elements
 missions[1] = 99;
 
-// Empty initialization
+// Arrays dynamically resize!
+missions[3] = 100; // Adds to the end of the array
+
+// Built-in Array Methods & Properties
 string[] names = [];
+names.push("Naruto");
+names.push("Sasuke");
+names.push("Sakura");
+
+print names.length; // Prints 3
 ```
 
 ---

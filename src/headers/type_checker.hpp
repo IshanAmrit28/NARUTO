@@ -573,6 +573,29 @@ public:
           obj_type = obj_type.substr(11);
       }
 
+      if (obj_type.substr(0, 11) == "super_type:") {
+          obj_type = obj_type.substr(11);
+      }
+
+      if (obj_type.substr(obj_type.length() >= 2 ? obj_type.length() - 2 : 0) == "[]") {
+          std::string method_name = get_expr->member_name.VALUE;
+          if (method_name == "push") {
+              if (expr->arguments.size() != 1) {
+                  std::cerr << "Semantic Error: push() expects exactly 1 argument." << std::endl;
+                  exit(1);
+              }
+              expr->arguments[0]->accept(this);
+              std::string arg_type = last_evaluated_type;
+              std::string elem_type = obj_type.substr(0, obj_type.length() - 2);
+              if (!can_assign(elem_type, arg_type)) {
+                  std::cerr << "Type Error: Cannot push type '" << arg_type << "' into array of '" << elem_type << "'." << std::endl;
+                  exit(1);
+              }
+              last_evaluated_type = "void";
+              return;
+          }
+      }
+
       if (!class_registry.count(obj_type))
       {
         std::cerr << "Type Error: Type '" << obj_type << "' has no members." << std::endl;
@@ -804,6 +827,14 @@ public:
   {
     expr->object_expression->accept(this);
     std::string obj_type = last_evaluated_type;
+
+    if (obj_type.substr(obj_type.length() >= 2 ? obj_type.length() - 2 : 0) == "[]" || obj_type == "string")
+    {
+      if (expr->member_name.VALUE == "length") {
+        last_evaluated_type = "int";
+        return;
+      }
+    }
 
     if (!class_registry.count(obj_type))
     {

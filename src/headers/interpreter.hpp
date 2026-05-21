@@ -610,6 +610,35 @@ public:
       bool is_super = is_super_call_flag;
       is_super_call_flag = false;
 
+      if (obj_val.type == RuntimeValue::ARRAY)
+      {
+          std::string method_name = get_expr->member_name.VALUE;
+          if (method_name == "push")
+          {
+              if (expr->arguments.size() != 1)
+              {
+                  std::cerr << "Runtime Error: push() expects exactly 1 argument." << std::endl;
+                  exit(1);
+              }
+              expr->arguments[0]->accept(this);
+              RuntimeValue arg_val = last_evaluated_value;
+              
+              if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION*>(get_expr->object_expression))
+              {
+                  RuntimeValue currentArr = current_environment->get(var_expr->name.VALUE);
+                  currentArr.array_elements.push_back(arg_val);
+                  current_environment->assign(var_expr->name.VALUE, currentArr);
+                  last_evaluated_value = currentArr;
+                  return;
+              }
+              else
+              {
+                  std::cerr << "Runtime Error: Can only push to a direct array variable." << std::endl;
+                  exit(1);
+              }
+          }
+      }
+
       if (obj_val.type != RuntimeValue::OBJECT || obj_val.object_val == nullptr)
       {
         std::cerr << "Runtime Error: Cannot call method on non-object." << std::endl;
@@ -912,10 +941,16 @@ public:
     // Get the ACTUAL array from environment
     RuntimeValue currentArr = current_environment->get(varExpr->name.VALUE);
 
-    if (idx_val.int_val < 0 || idx_val.int_val >= currentArr.array_elements.size())
+    if (idx_val.int_val < 0)
     {
-      std::cerr << "Runtime Error: Array index out of bounds." << std::endl;
+      std::cerr << "Runtime Error: Array index cannot be negative." << std::endl;
       exit(1);
+    }
+    
+    // Automatically expand array if index is out of bounds
+    if (idx_val.int_val >= currentArr.array_elements.size())
+    {
+        currentArr.array_elements.resize(idx_val.int_val + 1, RuntimeValue::Void());
     }
 
     // Update the element
@@ -1155,6 +1190,26 @@ public:
       else
       {
         std::cerr << "Runtime Error: Field '" << member << "' not found on struct '" << obj_val.struct_val->struct_name << "'." << std::endl;
+        exit(1);
+      }
+    }
+    else if (obj_val.type == RuntimeValue::ARRAY)
+    {
+      std::string member = expr->member_name.VALUE;
+      if (member == "length") {
+        last_evaluated_value = RuntimeValue::Integer(obj_val.array_elements.size());
+      } else {
+        std::cerr << "Runtime Error: Field '" << member << "' not found on array." << std::endl;
+        exit(1);
+      }
+    }
+    else if (obj_val.type == RuntimeValue::STRING)
+    {
+      std::string member = expr->member_name.VALUE;
+      if (member == "length") {
+        last_evaluated_value = RuntimeValue::Integer(obj_val.string_val.length());
+      } else {
+        std::cerr << "Runtime Error: Field '" << member << "' not found on string." << std::endl;
         exit(1);
       }
     }

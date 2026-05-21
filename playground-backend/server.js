@@ -52,7 +52,7 @@ wss.on('connection', (ws) => {
             fs.writeFileSync(tempFile, data.code);
 
             // Determine executable path (Linux/Render vs Local Windows)
-            const localWinPath = path.join(__dirname, '..', 'naruto.exe');
+            const localWinPath = path.join(__dirname, 'naruto.exe');
             const linuxPath = path.join(__dirname, 'naruto');
             const exePath = fs.existsSync(linuxPath) ? linuxPath : localWinPath;
 
