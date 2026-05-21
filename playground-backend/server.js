@@ -47,18 +47,27 @@ wss.on('connection', (ws) => {
                     ws.send(JSON.stringify({ type: 'output', data: output.toString() }));
                 });
 
+                const timeoutId = setTimeout(() => {
+                    if (narutoProcess) {
+                        ws.send(JSON.stringify({ type: 'output', data: '\r\n\r\n[ERROR: Execution timed out after 30 seconds]' }));
+                        narutoProcess.kill();
+                    }
+                }, 30000);
+
                 narutoProcess.on('close', (code) => {
+                    clearTimeout(timeoutId);
                     ws.send(JSON.stringify({ type: 'exit', code }));
-                    if (fs.existsSync(tempFile)) {
+                    if (tempFile && fs.existsSync(tempFile)) {
                         fs.unlinkSync(tempFile);
                     }
                 });
 
                 narutoProcess.on('error', (err) => {
-                    ws.send(JSON.stringify({ type: 'output', data: `\\r\\nFailed to start process: ${err.message}\\r\\n` }));
+                    clearTimeout(timeoutId);
+                    ws.send(JSON.stringify({ type: 'output', data: `\r\nFailed to start process: ${err.message}\r\n` }));
                 });
             } catch (err) {
-                ws.send(JSON.stringify({ type: 'output', data: `\\r\\nError: ${err.message}\\r\\n` }));
+                ws.send(JSON.stringify({ type: 'output', data: `\r\nError: ${err.message}\r\n` }));
             }
         } else if (data.type === 'input') {
             if (narutoProcess && narutoProcess.stdin) {
