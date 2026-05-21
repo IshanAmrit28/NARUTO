@@ -189,7 +189,7 @@ private:
           exit(1);
         }
         Token *p_type = advance_token();
-        if (match_types({TOKEN_OPEN_BRACKET}))
+        while (match_types({TOKEN_OPEN_BRACKET}))
         {
           consume_token(TOKEN_CLOSE_BRACKET, "Expected ']'.");
           p_type->VALUE += "[]";
@@ -208,8 +208,8 @@ private:
   {
     Token *type_token = advance_token();
 
-    // Handle Array Syntax: int[] x
-    if (match_types({TOKEN_OPEN_BRACKET}))
+    // Handle Multi-Dimensional Array Syntax: int[][] x
+    while (match_types({TOKEN_OPEN_BRACKET}))
     {
       consume_token(TOKEN_CLOSE_BRACKET, "Expected ']'.");
       type_token->VALUE += "[]";

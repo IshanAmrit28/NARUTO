@@ -215,6 +215,57 @@ private:
   std::unordered_map<std::string, ClassDefinition> classes;
   std::unordered_map<std::string, StructDefinition> structs;
 
+  void update_value_in_environment(EXPRESSION *expr, RuntimeValue updated_val)
+  {
+      if (auto varExpr = dynamic_cast<VARIABLE_EXPRESSION *>(expr))
+      {
+          current_environment->assign(varExpr->name.VALUE, updated_val);
+      }
+      else if (auto getExpr = dynamic_cast<GET_EXPRESSION *>(expr))
+      {
+          getExpr->object_expression->accept(this);
+          RuntimeValue obj_val = last_evaluated_value;
+
+          if (obj_val.type == RuntimeValue::OBJECT && obj_val.object_val)
+          {
+              obj_val.object_val->fields[getExpr->member_name.VALUE] = updated_val;
+          }
+          else if (obj_val.type == RuntimeValue::STRUCT && obj_val.struct_val)
+          {
+              obj_val.struct_val->fields[getExpr->member_name.VALUE] = updated_val;
+          }
+          else
+          {
+              std::cerr << "Runtime Error: Cannot assign property on non-object type." << std::endl;
+              exit(1);
+          }
+      }
+      else if (auto arrAcc = dynamic_cast<ARRAY_ACCESS_EXPRESSION *>(expr))
+      {
+          arrAcc->array_expression->accept(this);
+          RuntimeValue parent_arr = last_evaluated_value;
+          
+          arrAcc->index_expression->accept(this);
+          RuntimeValue idx = last_evaluated_value;
+          
+          if (idx.int_val < 0) {
+              std::cerr << "Runtime Error: Array index cannot be negative." << std::endl;
+              exit(1);
+          }
+          if (idx.int_val >= parent_arr.array_elements.size()) {
+              parent_arr.array_elements.resize(idx.int_val + 1, RuntimeValue::Void());
+          }
+          parent_arr.array_elements[idx.int_val] = updated_val;
+          
+          update_value_in_environment(arrAcc->array_expression, parent_arr);
+      }
+      else
+      {
+          std::cerr << "Runtime Error: Invalid assignment target." << std::endl;
+          exit(1);
+      }
+  }
+
   bool is_truthy(RuntimeValue v)
   {
     if (v.type == RuntimeValue::BOOL)
@@ -623,19 +674,14 @@ public:
               expr->arguments[0]->accept(this);
               RuntimeValue arg_val = last_evaluated_value;
               
-              if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION*>(get_expr->object_expression))
-              {
-                  RuntimeValue currentArr = current_environment->get(var_expr->name.VALUE);
-                  currentArr.array_elements.push_back(arg_val);
-                  current_environment->assign(var_expr->name.VALUE, currentArr);
-                  last_evaluated_value = currentArr;
-                  return;
-              }
-              else
-              {
-                  std::cerr << "Runtime Error: Can only push to a direct array variable." << std::endl;
-                  exit(1);
-              }
+              // Push to the local copy of the array
+              obj_val.array_elements.push_back(arg_val);
+              
+              // Propagate the updated array back up to the environment, object, or parent array
+              update_value_in_environment(get_expr->object_expression, obj_val);
+              
+              last_evaluated_value = obj_val;
+              return;
           }
       }
 
@@ -918,17 +964,6 @@ public:
     expr->array_expression->accept(this);
     RuntimeValue arr_val = last_evaluated_value; // This is a COPY of the struct
 
-    // We need a pointer to the ACTUAL variable in the environment to modify it.
-    // This part is tricky because 'arr_val' is just a value.
-    // Simplified approach: Re-fetch variable by name if the expression is a variable.
-
-    VARIABLE_EXPRESSION *varExpr = dynamic_cast<VARIABLE_EXPRESSION *>(expr->array_expression);
-    if (!varExpr)
-    {
-      std::cerr << "Runtime Error: Direct assignment to non-variable arrays not supported." << std::endl;
-      exit(1);
-    }
-
     // 2. Evaluate Index
     expr->index_expression->accept(this);
     RuntimeValue idx_val = last_evaluated_value;
@@ -938,9 +973,6 @@ public:
     RuntimeValue assign_val = last_evaluated_value;
 
     // 4. Perform Update
-    // Get the ACTUAL array from environment
-    RuntimeValue currentArr = current_environment->get(varExpr->name.VALUE);
-
     if (idx_val.int_val < 0)
     {
       std::cerr << "Runtime Error: Array index cannot be negative." << std::endl;
@@ -948,16 +980,16 @@ public:
     }
     
     // Automatically expand array if index is out of bounds
-    if (idx_val.int_val >= currentArr.array_elements.size())
+    if (idx_val.int_val >= arr_val.array_elements.size())
     {
-        currentArr.array_elements.resize(idx_val.int_val + 1, RuntimeValue::Void());
+        arr_val.array_elements.resize(idx_val.int_val + 1, RuntimeValue::Void());
     }
 
-    // Update the element
-    currentArr.array_elements[idx_val.int_val] = assign_val;
+    // Update the element in our local copy
+    arr_val.array_elements[idx_val.int_val] = assign_val;
 
-    // Write it back to environment
-    current_environment->assign(varExpr->name.VALUE, currentArr);
+    // Propagate the modified array back to the environment, object, or parent array
+    update_value_in_environment(expr->array_expression, arr_val);
 
     last_evaluated_value = assign_val;
   }

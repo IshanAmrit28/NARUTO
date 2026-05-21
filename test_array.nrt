@@ -1,3 +1,0 @@
-string[] names = [];
-names.push("Naruto");
-print names.length;
