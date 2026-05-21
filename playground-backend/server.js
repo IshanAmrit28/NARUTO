@@ -8,12 +8,32 @@ const WebSocket = require('ws');
 
 const app = express();
 const port = process.env.PORT || 3001;
+const allowedOrigin = process.env.FRONTEND_URL || '*';
 
-app.use(cors());
+app.use(cors({
+    origin: allowedOrigin
+}));
 app.use(express.json());
 
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ 
+    server,
+    verifyClient: (info, done) => {
+        // If allowedOrigin is set to '*' (e.g. testing), allow all.
+        if (allowedOrigin === '*') {
+            done(true);
+            return;
+        }
+        
+        // Otherwise, verify the Origin header matches the FRONTEND_URL
+        const origin = info.req.headers.origin;
+        if (origin === allowedOrigin) {
+            done(true);
+        } else {
+            done(false, 403, 'Forbidden');
+        }
+    }
+});
 
 wss.on('connection', (ws) => {
     let narutoProcess = null;

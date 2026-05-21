@@ -13,3 +13,4 @@ playground/naruto.exe
 
 # VSCode config
 .vscode/
+.env

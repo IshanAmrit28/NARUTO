@@ -95,11 +95,13 @@ function App() {
     xtermRef.current.writeln('Running...\r\n');
 
     // Connect to WebSocket server
-    // If running locally, connect to backend port 3001. If on Render, use the same host!
+    // Prioritize the .env variable, then fallback to automatic detection.
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    const autoDetectedUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'ws://localhost:3001'
         : `${protocol}//${window.location.host}`;
+        
+    const wsUrl = import.meta.env.VITE_BACKEND_WS_URL || autoDetectedUrl;
         
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
