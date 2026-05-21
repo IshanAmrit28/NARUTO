@@ -439,7 +439,13 @@ public:
     current_function_return_type = statement->return_type_token.VALUE;
     for (auto p : statement->parameters)
       declare_variable(p.name_token.VALUE, p.type_token.VALUE);
+    
+    int previous_loop_depth = loop_depth;
+    loop_depth = 0;
+    
     statement->body_block->accept(this);
+    
+    loop_depth = previous_loop_depth;
     exit_current_scope();
   }
 
@@ -549,6 +555,10 @@ public:
     {
       get_expr->object_expression->accept(this);
       std::string obj_type = last_evaluated_type;
+      
+      if (obj_type.substr(0, 11) == "super_type:") {
+          obj_type = obj_type.substr(11);
+      }
 
       if (!class_registry.count(obj_type))
       {
@@ -565,24 +575,12 @@ public:
         exit(1);
       }
 
-      // Access control verification for method call
       if (info.is_private[method_name])
       {
-        bool is_access_valid = false;
-        if (current_class == obj_type)
-        {
-          if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION *>(get_expr->object_expression))
-          {
-            if (var_expr->name.VALUE == "this")
-            {
-              is_access_valid = true;
-            }
-          }
-        }
-        if (!is_access_valid)
+        if (current_class != obj_type)
         {
           std::cerr << "Semantic Error: Member '" << method_name << "' of class '"
-                    << obj_type << "' is private and can only be accessed on 'this' within the class." << std::endl;
+                    << obj_type << "' is private and can only be accessed within the class." << std::endl;
           exit(1);
         }
       }
@@ -609,6 +607,45 @@ public:
       }
 
       last_evaluated_type = info.method_return_types[method_name];
+    }
+    else if (auto super_expr = dynamic_cast<SUPER_EXPRESSION *>(expr->callee))
+    {
+        super_expr->accept(this);
+        std::string obj_type = last_evaluated_type;
+        if (obj_type.substr(0, 11) == "super_type:") {
+            obj_type = obj_type.substr(11);
+        }
+        
+        ClassTypeInfo info = class_registry[obj_type];
+        if (info.method_return_types.count("init"))
+        {
+          auto expected_params = info.method_params["init"];
+          if (expr->arguments.size() != expected_params.size())
+          {
+            std::cerr << "Semantic Error: Constructor 'init' for class '" << obj_type
+                      << "' expects " << expected_params.size() << " arguments, got "
+                      << expr->arguments.size() << "." << std::endl;
+            exit(1);
+          }
+          for (size_t i = 0; i < expr->arguments.size(); i++)
+          {
+            expr->arguments[i]->accept(this);
+            std::string arg_type = last_evaluated_type;
+            std::string expected_type = expected_params[i].first;
+            if (!can_assign(expected_type, arg_type))
+            {
+              std::cerr << "Type Error: Method 'init' parameter " << (i + 1)
+                        << " expects '" << expected_type << "', got '" << arg_type << "'." << std::endl;
+              exit(1);
+            }
+          }
+        }
+        else if (!expr->arguments.empty())
+        {
+          std::cerr << "Semantic Error: Class '" << obj_type << "' does not define an 'init' constructor, but arguments were provided." << std::endl;
+          exit(1);
+        }
+        last_evaluated_type = "void";
     }
     else
     {
@@ -766,21 +803,10 @@ public:
 
     if (info.is_private[member])
     {
-      bool is_access_valid = false;
-      if (current_class == obj_type)
-      {
-        if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION *>(expr->object_expression))
-        {
-          if (var_expr->name.VALUE == "this")
-          {
-            is_access_valid = true;
-          }
-        }
-      }
-      if (!is_access_valid)
+      if (current_class != obj_type)
       {
         std::cerr << "Semantic Error: Member '" << member << "' of class '"
-                  << obj_type << "' is private and can only be accessed on 'this' within the class." << std::endl;
+                  << obj_type << "' is private and can only be accessed within the class." << std::endl;
         exit(1);
       }
     }
@@ -791,7 +817,8 @@ public:
     }
     else if (info.method_return_types.count(member))
     {
-      last_evaluated_type = info.method_return_types[member];
+      std::cerr << "Semantic Error: Method '" << member << "' cannot be accessed without invoking it." << std::endl;
+      exit(1);
     }
     else
     {
@@ -822,21 +849,10 @@ public:
 
     if (info.is_private[member])
     {
-      bool is_access_valid = false;
-      if (current_class == obj_type)
-      {
-        if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION *>(expr->object_expression))
-        {
-          if (var_expr->name.VALUE == "this")
-          {
-            is_access_valid = true;
-          }
-        }
-      }
-      if (!is_access_valid)
+      if (current_class != obj_type)
       {
         std::cerr << "Semantic Error: Member '" << member << "' of class '"
-                  << obj_type << "' is private and can only be modified on 'this' within the class." << std::endl;
+                  << obj_type << "' is private and can only be modified within the class." << std::endl;
         exit(1);
       }
     }
@@ -862,6 +878,22 @@ public:
 
   // [MODIFIED] Return "dynamic_input" to signal the type checker to allow this to be assigned to anything.
   void visit(INPUT_EXPRESSION *expr) override { last_evaluated_type = "dynamic_input"; }
+
+  void visit(SUPER_EXPRESSION *expr) override
+  {
+    if (current_class.empty())
+    {
+      std::cerr << "Semantic Error: Cannot use 'super' outside of a class." << std::endl;
+      exit(1);
+    }
+    std::string superclass = class_registry[current_class].superclass;
+    if (superclass.empty())
+    {
+      std::cerr << "Semantic Error: Class '" << current_class << "' does not have a superclass." << std::endl;
+      exit(1);
+    }
+    last_evaluated_type = "super_type:" + superclass;
+  }
 };
 
 #endif

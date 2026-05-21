@@ -297,3 +297,70 @@ for (int i = 5; i > 0; i--) {
 }
 
 ```
+
+---
+
+## 10. Object-Oriented Programming (OOP)
+
+Naruto supports classes, structs, and single inheritance.
+
+### Structs
+Structs are simple data containers with public fields. They do not have methods and cannot be instantiated with `new`. They are initialized by passing arguments in the order of their fields.
+
+```c
+struct Vector {
+    float x;
+    float y;
+}
+
+Vector v = Vector(10.5, 20.0);
+print v.x;
+```
+
+### Classes and Access Control
+Classes can have fields, methods, and access modifiers (`private`). By default, all members are public.
+You can declare custom constructors using the `init` method.
+
+```c
+class Ninja {
+    string name;
+    private int chakra;
+
+    function void init(string n, int c) {
+        this.name = n;
+        this.chakra = c;
+    }
+
+    function void display() {
+        print "Ninja: " + this.name;
+    }
+}
+
+Ninja n1 = new Ninja("Naruto", 100);
+n1.display();
+```
+
+*Note: Private members (`private int chakra;`) can only be accessed from within methods of the same class.*
+
+### Inheritance and the `super` Keyword
+Classes can inherit from a single superclass. 
+You can use the `super` keyword to invoke the parent's overridden methods or the parent's constructor.
+
+```c
+class Shinobi inherits Ninja {
+    string village;
+
+    function void init(string n, int c, string v) {
+        super(n, c); // Call parent constructor
+        this.village = v;
+    }
+
+    function void display() {
+        super.display(); // Call parent method
+        print "Village: " + this.village;
+    }
+}
+
+Shinobi s1 = new Shinobi("Sasuke", 90, "Hidden Leaf");
+s1.display();
+```

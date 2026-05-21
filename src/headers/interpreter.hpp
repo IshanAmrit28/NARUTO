@@ -210,6 +210,7 @@ private:
   ENVIRONMENT *current_environment;
   ENVIRONMENT *global_environment;
   RuntimeValue last_evaluated_value;
+  bool is_super_call_flag = false;
   std::unordered_map<std::string, FUNCTION_DECLARATION_STATEMENT *> functions;
   std::unordered_map<std::string, ClassDefinition> classes;
   std::unordered_map<std::string, StructDefinition> structs;
@@ -605,6 +606,9 @@ public:
     {
       get_expr->object_expression->accept(this);
       RuntimeValue obj_val = last_evaluated_value;
+      
+      bool is_super = is_super_call_flag;
+      is_super_call_flag = false;
 
       if (obj_val.type != RuntimeValue::OBJECT || obj_val.object_val == nullptr)
       {
@@ -613,21 +617,19 @@ public:
       }
 
       std::string class_name = obj_val.object_val->class_name;
-      if (!classes.count(class_name))
-      {
-        std::cerr << "Runtime Error: Class '" << class_name << "' is undefined." << std::endl;
-        exit(1);
+      std::string method_name = get_expr->member_name.VALUE;
+        
+      if (is_super) {
+          class_name = classes[class_name].superclass;
       }
 
-      auto &cls = classes[class_name];
-      std::string method_name = get_expr->member_name.VALUE;
-      if (!cls.methods.count(method_name))
+      if (!classes.count(class_name) || !classes[class_name].methods.count(method_name))
       {
         std::cerr << "Runtime Error: Method '" << method_name << "' not found on class '" << class_name << "'." << std::endl;
         exit(1);
       }
 
-      auto method_stmt = cls.methods[method_name];
+      auto method_stmt = classes[class_name].methods[method_name];
 
       std::vector<RuntimeValue> args;
       for (auto arg : expr->arguments)
@@ -658,6 +660,49 @@ public:
       ENVIRONMENT *temp = current_environment;
       current_environment = prev;
       delete temp;
+    }
+    else if (auto super_expr = dynamic_cast<SUPER_EXPRESSION *>(expr->callee))
+    {
+        super_expr->accept(this);
+        RuntimeValue obj_val = last_evaluated_value;
+        is_super_call_flag = false;
+        
+        std::string class_name = obj_val.object_val->class_name;
+        std::string super_class_name = classes[class_name].superclass;
+        
+        if (classes.count(super_class_name) && classes[super_class_name].methods.count("init"))
+        {
+            auto method_stmt = classes[super_class_name].methods["init"];
+            
+            std::vector<RuntimeValue> args;
+            for (auto arg : expr->arguments)
+            {
+                arg->accept(this);
+                args.push_back(last_evaluated_value);
+            }
+            
+            ENVIRONMENT *prev = current_environment;
+            current_environment = new ENVIRONMENT(global_environment);
+            current_environment->define("this", obj_val);
+            
+            for (size_t i = 0; i < method_stmt->parameters.size(); i++)
+            {
+                current_environment->define(method_stmt->parameters[i].name_token.VALUE, args[i]);
+            }
+            
+            try
+            {
+                method_stmt->body_block->accept(this);
+            }
+            catch (const ReturnException &e)
+            {
+            }
+            
+            ENVIRONMENT *temp = current_environment;
+            current_environment = prev;
+            delete temp;
+        }
+        last_evaluated_value = RuntimeValue::Void();
     }
     else if (auto var_expr = dynamic_cast<VARIABLE_EXPRESSION *>(expr->callee))
     {
@@ -1128,6 +1173,12 @@ public:
       std::cerr << "Runtime Error: Cannot set member of non-object/non-struct." << std::endl;
       exit(1);
     }
+  }
+
+  void visit(SUPER_EXPRESSION *expr) override
+  {
+    last_evaluated_value = current_environment->get("this");
+    is_super_call_flag = true;
   }
 };
 

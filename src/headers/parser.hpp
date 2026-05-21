@@ -733,6 +733,12 @@ private:
       return new VARIABLE_EXPRESSION(*peek_previous());
     }
 
+    // Parent reference: super
+    if (match_types({TOKEN_SUPER}))
+    {
+      return new SUPER_EXPRESSION(*peek_previous());
+    }
+
     // Variables
     if (match_types({TOKEN_ID}))
       return new VARIABLE_EXPRESSION(*peek_previous());

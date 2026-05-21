@@ -12,6 +12,7 @@ class STRUCT_DECLARATION_STATEMENT;
 class NEW_EXPRESSION;
 class GET_EXPRESSION;
 class SET_EXPRESSION;
+class SUPER_EXPRESSION;
 
 // --- BASE CLASSES ---
 class AST_NODE
@@ -166,6 +167,14 @@ public:
   std::vector<EXPRESSION *> arguments;
   NEW_EXPRESSION(Token c, std::vector<EXPRESSION *> args)
       : class_name(c), arguments(args) {}
+  void accept(AST_VISITOR *visitor) override;
+};
+
+class SUPER_EXPRESSION : public EXPRESSION
+{
+public:
+  Token keyword;
+  SUPER_EXPRESSION(Token k) : keyword(k) {}
   void accept(AST_VISITOR *visitor) override;
 };
 
@@ -364,6 +373,7 @@ public:
   virtual void visit(ARRAY_ASSIGNMENT_EXPRESSION *expression) = 0;
   virtual void visit(ASSIGNMENT_EXPRESSION *expression) = 0;
   virtual void visit(NEW_EXPRESSION *expression) = 0;
+  virtual void visit(SUPER_EXPRESSION *expression) = 0;
   virtual void visit(GET_EXPRESSION *expression) = 0;
   virtual void visit(SET_EXPRESSION *expression) = 0;
 
@@ -398,6 +408,7 @@ inline void ARRAY_ACCESS_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void ARRAY_ASSIGNMENT_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void ASSIGNMENT_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void NEW_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
+inline void SUPER_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void GET_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void SET_EXPRESSION::accept(AST_VISITOR *v) { v->visit(this); }
 inline void EXPRESSION_STATEMENT::accept(AST_VISITOR *v) { v->visit(this); }
