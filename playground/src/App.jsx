@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Analytics } from "@vercel/analytics/react";
 import Editor from '@monaco-editor/react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -173,6 +174,7 @@ function App() {
 
   return (
     <div className="app-container">
+      <Analytics />
       <header className="main-header">
         <div className="logo-section">
           <span className="logo-icon">🍥</span>
