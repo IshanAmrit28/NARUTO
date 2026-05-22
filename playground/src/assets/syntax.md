@@ -1,203 +1,569 @@
-# NARUTO Language Syntax Guide
+# NARUTO Programming Language
 
-Welcome to the official syntax guide for **NARUTO**, a statically typed, C-inspired programming language. NARUTO brings together the best of both worlds: the strict performance boundaries and object-oriented structure of a language like C++ or Java, combined with the dynamic, developer-friendly implicit type coercion and fluidity of Python.
+> Official Language Documentation
 
-Whether you are writing simple scripts, complex Object-Oriented systems, or working with dynamic I/O, NARUTO provides a clean, intuitive, and highly powerful syntax.
+NARUTO is a statically typed, object-oriented, interpreted programming language designed for simplicity, readability, and powerful runtime behavior.
+
+The language combines:
+* strict type safety,
+* automatic numeric coercion,
+* dynamic array behavior,
+* and a clean developer-friendly syntax.
+
+NARUTO is built for:
+* application development,
+* scripting,
+* object-oriented systems,
+* mathematical computation,
+* and educational programming.
 
 ---
 
-## 1. Introduction to NARUTO
+# Table of Contents
 
-NARUTO executes code line-by-line using a powerful custom-built interpreter. It features:
-*   **Static Typing with a Twist:** Variables must have declared types, but mathematical operations will seamlessly auto-promote numbers to prevent data loss.
-*   **Object-Oriented Programming:** Full support for Classes, Access Modifiers (`private`), Constructors, and Inheritance (`extends`).
-*   **Multi-Dimensional Data:** True support for multi-dimensional nested arrays.
-*   **Dynamic I/O:** Built-in `input()` reading that automatically converts strings into numbers.
+1. Introduction
+2. Program Structure
+3. Comments
+4. Variables
+5. Data Types
+6. Type System
+7. Type Casting
+8. Input & Output
+9. Operators
+10. Conditional Statements
+11. Loops
+12. Arrays
+13. Functions
+14. Object-Oriented Programming
+15. Structs
+16. Memory Model
+17. Runtime Behavior
+18. Best Practices
+19. Full Example Programs
 
 ---
 
-## 2. Variables & Data Types
+# 1. Introduction
 
-NARUTO is statically typed, meaning you must explicitly declare the data type of a variable before using it. Once declared, a variable cannot change its structural type (e.g., an `int` cannot become a `string`).
+## What is NARUTO?
 
-### Supported Data Types & Usage Theory
+NARUTO is an interpreted programming language that executes code line-by-line through a custom runtime engine.
 
-Choosing the correct data type ensures memory efficiency and prevents unexpected runtime behavior.
+The language focuses on:
+* clean syntax,
+* predictable behavior,
+* automatic numeric promotion,
+* scalable object-oriented architecture,
+* and developer readability.
 
-#### Integer Types (Whole Numbers)
-*   `byte`: An 8-bit integer. **Use case:** Storing very small numbers (e.g., ages, small counters, pixel values).
-*   `short`: A 16-bit integer. **Use case:** Storing numbers up to a few thousand (e.g., level progression, days).
-*   `int`: A 32-bit integer. **Use case:** The default choice for most whole numbers, counting, and math.
-*   `long`: A 64-bit integer. **Use case:** Storing massive numbers like database IDs, global timestamps, or deep mathematical results.
+---
 
-#### Floating Point Types (Decimals)
-*   `float`: A standard precision decimal number. **Use case:** Basic physics calculations, percentages, or money.
-*   `double`: A high-precision decimal number. **Use case:** High-level scientific calculations or coordinates where precision is paramount.
+## Core Features
 
-#### Text & Boolean
-*   `string`: A sequence of text characters. **Use case:** Names, text prompts, or data payloads.
-*   `char`: A single character. **Use case:** Processing individual letters in algorithms.
-*   `bool`: A simple `true` or `false` value. **Use case:** Conditional logic, state tracking, and flags.
+### Static Typing
+Every variable must declare a type before usage.
 
-### Declaration Examples
+### Automatic Numeric Promotion
+Numeric expressions automatically widen to preserve precision.
+
+### Object-Oriented Programming
+Supports:
+* classes,
+* constructors,
+* inheritance,
+* access modifiers,
+* method overriding,
+* and object instantiation.
+
+### Dynamic Arrays
+Arrays automatically resize during assignment.
+
+### Multi-Dimensional Collections
+Supports nested arrays of any depth.
+
+### Automatic Input Conversion
+The runtime automatically converts input into numeric types when required.
+
+---
+
+# 2. Program Structure
+
+A NARUTO program consists of:
+* variable declarations,
+* function definitions,
+* class definitions,
+* expressions,
+* and executable statements.
+
+---
+
+## Basic Program
+
 ```cpp
-// Explicit Declarations
-int level = 99;
-double chakra = 150.55241;
-string ninja = "Naruto Uzumaki";
-bool isHokage = true;
-
-// Uninitialized Variables (assigned default empty values automatically)
-int shadowClones;
-string clanName;
+print "Welcome to NARUTO";
 ```
 
 ---
 
-## 3. Type Conversion & Casting
-
-One of NARUTO's most powerful features is its implicit numeric coercion, allowing you to mix and assign numbers without annoying casting boilerplate.
-
-### Implicit Coercion (Widening)
-If you perform arithmetic operations on mixed numeric types, NARUTO will automatically "widen" or "promote" the result to the largest, most precise type to prevent data loss.
+## Multi-Line Program
 
 ```cpp
-float PI = 3.14;
-int radius = 5;
+int age = 17;
+string name = "Naruto";
 
-// The integer 'radius' is implicitly coerced to a float.
-// The resulting variable 'area' is properly inferred as a float!
-float area = PI * radius * radius;
-print area;
-```
-
-### Explicit Casting
-Sometimes you need to forcefully convert a type (e.g., turning a float into an integer by truncating the decimal, or converting a string into a number). You can do this using built-in casting functions.
-
-```cpp
-// 1. Casting Float to Int (Truncation)
-float rawDamage = 99.9;
-int finalDamage = int(rawDamage); 
-print finalDamage; // Prints: 99
-
-// 2. Casting Numbers to Strings
-int ID = 404;
-string errorMsg = "Error " + string(ID) + ": Not Found";
-
-// 3. Casting Strings to Numbers
-int power = int("9000");
-float exactPower = float("9000.5");
+print name;
+print age;
 ```
 
 ---
 
-## 4. Input/Output (I/O)
+# 3. Comments
 
-NARUTO provides extremely powerful built-in functions for handling standard input and output.
+Comments are ignored by the interpreter.
 
-### Standard Output (`print`)
-The `print` keyword evaluates any expression, outputs it to the console, and automatically appends a newline. NARUTO will automatically coerce numbers to strings if you use the `+` operator!
+---
 
-```cpp
-print "Hello World!";
-print 123 + 456;    // Prints: 579
-print 10 > 5;       // Prints: true
-
-string village = "Hidden Leaf";
-int population = 50000;
-print "The " + village + " has " + population + " residents."; // Implicitly converts population to string!
-```
-
-### Standard Input (`input`)
-The `input()` function pauses execution, prints an optional prompt to the console, and captures the user's text. 
-
-**Magic Auto-Conversion:** If you assign the result of `input()` to a numeric variable, NARUTO will internally attempt to parse the string into a number. If the user typed a valid number, it succeeds automatically!
+## Single Line Comments
 
 ```cpp
-// Standard String Input
-string user = input("Who are you? ");
-print "Welcome, " + user;
-
-// Magic Auto-Conversion to Integer
-int age = input("Enter your age: ");
-print "Next year you will be: " + (age + 1);
-
-// Magic Auto-Conversion to Float
-float weight = input("Enter weight in kg: ");
+// This is a comment
+print "Hello";
 ```
 
 ---
 
-## 5. Operators
+## Multi-Line Comments
 
-### Arithmetic
+```cpp
+/*
+    This is a
+    multi-line comment
+*/
+print "Hello";
+```
+
+---
+
+# 4. Variables
+
+## What is a Variable?
+
+A variable is a named memory location used to store data during execution.
+
+Each variable contains:
+* a type,
+* a name,
+* and a value.
+
+---
+
+## Variable Declaration Syntax
+
+```cpp
+datatype variableName = value;
+```
+
+---
+
+## Example
+
+```cpp
+int age = 16;
+string village = "Leaf";
+bool isNinja = true;
+```
+
+---
+
+# 5. Data Types
+
+NARUTO supports multiple built-in data types.
+
+---
+
+## Integer Types
+
+### byte
+
+**Description**: An 8-bit signed integer.
+**Range**: `-128 to 127`
+
+**Example**:
+```cpp
+byte level = 10;
+print level;
+```
+
+---
+
+### short
+
+**Description**: A 16-bit signed integer.
+
+**Example**:
+```cpp
+short score = 1200;
+print score;
+```
+
+---
+
+### int
+
+**Description**: A 32-bit signed integer.
+
+**Example**:
+```cpp
+int chakra = 9000;
+print chakra;
+```
+
+---
+
+### long
+
+**Description**: A 64-bit signed integer.
+
+**Example**:
+```cpp
+long worldPopulation = 8000000000;
+print worldPopulation;
+```
+
+---
+
+## Floating Point Types
+
+### float
+
+**Description**: Stores decimal numbers with standard precision.
+
+**Example**:
+```cpp
+float speed = 12.5;
+print speed;
+```
+
+---
+
+### double
+
+**Description**: Stores high precision decimal numbers.
+
+**Example**:
+```cpp
+double gravity = 9.80665;
+print gravity;
+```
+
+---
+
+## Text Types
+
+### string
+
+**Description**: Stores sequences of text characters.
+
+**Example**:
+```cpp
+string name = "Sasuke";
+print name;
+```
+
+---
+
+### char
+
+**Description**: Stores a single character.
+
+**Example**:
+```cpp
+char rank = 'A';
+print rank;
+```
+
+---
+
+## Boolean Type
+
+### bool
+
+**Description**: Stores either true or false.
+
+**Example**:
+```cpp
+bool alive = true;
+print alive;
+```
+
+---
+
+# 6. Type System
+
+NARUTO uses static typing. A variable cannot change its structural type after declaration.
+
+---
+
+## Valid Assignment
+
+```cpp
+int power = 100;
+power = 200;
+```
+
+---
+
+## Invalid Assignment
+
+```cpp
+int power = 100;
+power = "high"; // Error: Cannot assign string to int
+```
+
+---
+
+## Numeric Promotion
+
+When numeric types interact, the runtime automatically promotes the result to the most precise type.
+
+**Example**:
+```cpp
+int a = 10;
+float b = 2.5;
+
+// a (int) is implicitly coerced to float
+float result = a + b;
+
+print result;
+```
+
+---
+
+# 7. Type Casting
+
+Explicit casting converts one type into another type.
+
+---
+
+## Float to Integer
+
+Truncates the decimal value.
+
+```cpp
+float damage = 99.9;
+int finalDamage = int(damage);
+
+print finalDamage; // Prints 99
+```
+
+---
+
+## Number to String
+
+```cpp
+int id = 404;
+string msg = string(id);
+
+print msg;
+```
+
+---
+
+## String to Integer
+
+```cpp
+string value = "500";
+int power = int(value);
+
+print power;
+```
+
+---
+
+# 8. Input & Output
+
+## Output
+
+The `print` keyword outputs expressions to the console.
+
+**Example**:
+```cpp
+print "Hello";
+print 100;
+print true;
+```
+
+---
+
+## String Concatenation
+
+```cpp
+string name = "Naruto";
+int age = 17;
+
+print name + " is " + age;
+```
+
+---
+
+## Input
+
+The `input()` function reads user input.
+
+**String Input Example**:
+```cpp
+string name = input("Enter name: ");
+print name;
+```
+
+---
+
+## Integer Input
+
+Assigning input to an integer automatically converts the user's string text into a number.
+
+```cpp
+int age = input("Enter age: ");
+print age;
+```
+
+---
+
+## Float Input
+
+Assigning input to a float automatically converts the user's string text into a decimal.
+
+```cpp
+float weight = input("Enter weight: ");
+print weight;
+```
+
+---
+
+# 9. Operators
+
+## Arithmetic Operators
+
 ```cpp
 int a = 10;
 int b = 3;
-print a + b; // Addition: 13
-print a - b; // Subtraction: 7
-print a * b; // Multiplication: 30
-print a / b; // Division: 3
-print a % b; // Modulo: 1
-```
 
-### Compound Assignment & Unary
-```cpp
-int x = 5;
-x += 5; // x is 10
-x *= 2; // x is 20
-x++;    // x is 21 (Increment)
-x--;    // x is 20 (Decrement)
-```
-
-### Logical & Relational
-Logical operators support **short-circuit evaluation** (e.g., if the left side of `&&` is false, the right side is never executed).
-
-```cpp
-bool isStrong = true;
-bool isFast = false;
-
-print isStrong && isFast; // false (Logical AND)
-print isStrong || isFast; // true  (Logical OR)
-print !isStrong;          // false (Logical NOT)
-
-print 10 > 5;  // true
-print 5 == 5;  // true
-print 5 != 5;  // false
-```
-
-### Bitwise
-Bitwise operators are specifically restricted to integer types (`byte`, `short`, `int`, `long`).
-
-```cpp
-int flags = 5;      // 0101 in binary
-print flags & 1;    // 1 (Bitwise AND)
-print flags | 2;    // 7 (Bitwise OR)
-print flags ^ 15;   // 10 (Bitwise XOR)
-print ~flags;       // Bitwise NOT
-print flags << 1;   // 10 (Left Shift)
-print flags >> 1;   // 2 (Right Shift)
+print a + b; // 13
+print a - b; // 7
+print a * b; // 30
+print a / b; // 3
+print a % b; // 1
 ```
 
 ---
 
-## 6. Control Flow
+## Compound Assignment
 
-### If / Else
 ```cpp
-int chakra = 80;
+int x = 10;
 
-if (chakra >= 100) {
-    print "Ready for Rasenshuriken!";
-} else if (chakra >= 50) {
-    print "Ready for Rasengan!";
-} else {
-    print "Need to rest...";
+x += 5; // x is 15
+x -= 2; // x is 13
+x *= 3; // x is 39
+x /= 3; // x is 13
+```
+
+---
+
+## Increment & Decrement
+
+```cpp
+int value = 5;
+
+value++; // 6
+value--; // 5
+```
+
+---
+
+## Relational Operators
+
+```cpp
+print 10 > 5;   // true
+print 10 < 5;   // false
+print 10 == 10; // true
+print 10 != 5;  // true
+```
+
+---
+
+## Logical Operators
+
+```cpp
+bool a = true;
+bool b = false;
+
+print a && b; // false
+print a || b; // true
+print !a;     // false
+```
+
+---
+
+## Bitwise Operators
+
+```cpp
+int flags = 5;
+
+print flags & 1;  // Bitwise AND
+print flags | 2;  // Bitwise OR
+print flags ^ 3;  // Bitwise XOR
+print flags << 1; // Left Shift
+print flags >> 1; // Right Shift
+```
+
+---
+
+# 10. Conditional Statements
+
+## if Statement
+
+```cpp
+int chakra = 50;
+
+if (chakra > 40) {
+    print "Ready";
 }
 ```
 
-### Switch Statement
-Executes a block of code based on strict equality. Variables declared inside a `case` block are safely block-scoped.
+---
+
+## if else Statement
+
+```cpp
+int chakra = 20;
+
+if (chakra > 40) {
+    print "Ready";
+} else {
+    print "Rest";
+}
+```
+
+---
+
+## else if Chain
+
+```cpp
+int level = 3;
+
+if (level == 1) {
+    print "Genin";
+} else if (level == 2) {
+    print "Chunin";
+} else {
+    print "Jonin";
+}
+```
+
+---
+
+## Switch Statement
 
 ```cpp
 int rank = 2;
@@ -207,163 +573,489 @@ switch (rank) {
         print "Genin";
     case 2:
         print "Chunin";
-    case 3:
-        print "Jonin";
     default:
-        print "Unknown Rank";
+        print "Unknown";
 }
 ```
 
 ---
 
-## 7. Loops
+# 11. Loops
 
-### While Loop
+## While Loop
+
 ```cpp
-int clones = 0;
-while (clones < 3) {
-    print "Shadow Clone Jutsu!";
-    clones++;
+int i = 0;
+
+while (i < 5) {
+    print i;
+    i++;
 }
 ```
 
-### For Loop
-Variables declared in the `for` initializer (like `int i`) are isolated to the loop block.
+---
+
+## For Loop
+
+```cpp
+for (int i = 0; i < 5; i++) {
+    print i;
+}
+```
+
+---
+
+## Break Statement
+
+Use `break` to exit a loop early.
+
+```cpp
+for (int i = 0; i < 10; i++) {
+    if (i == 5) {
+        break;
+    }
+    print i;
+}
+```
+
+---
+
+## Continue Statement
+
+Use `continue` to skip the rest of the current iteration.
 
 ```cpp
 for (int i = 0; i < 5; i++) {
     if (i == 2) {
-        continue; // Skip the rest of this iteration
-    }
-    if (i == 4) {
-        break; // Exit the loop entirely
+        continue;
     }
     print i;
 }
-// 'i' no longer exists here!
 ```
 
 ---
 
-## 8. Arrays & Multi-Dimensional Data
+# 12. Arrays
 
-Arrays are homogeneous lists (all elements must share the same type). NARUTO supports arrays of any depth (Multi-Dimensional Arrays) and provides built-in methods.
+## Array Declaration
 
-### 1D Arrays
-```cpp
-// Declaration and Initialization
-int[] missions = [10, 20, 30];
-
-// Dynamic resizing via index
-missions[5] = 100; // Array automatically expands!
-
-// Built-in methods
-string[] names = [];
-names.push("Naruto");
-names.push("Sasuke");
-
-print names.length; // Prints 2
-```
-
-### Multi-Dimensional Arrays
-You can nest arrays to create matrices, grids, or complex data structures.
+Arrays must be declared with a single data type using `[]`.
 
 ```cpp
-int[][] matrix = [[1, 2], [3, 4]];
-
-print matrix[0][0]; // Prints 1
-
-// Pushing to a nested array
-matrix[1].push(99); 
-print matrix[1][2]; // Prints 99
+int[] numbers = [1, 2, 3];
 ```
 
 ---
 
-## 9. Functions
+## Accessing Elements
 
-Functions must explicitly declare their return type and parameter types. Use `void` if the function does not return a value.
+Access elements via their zero-based index.
 
 ```cpp
-function int calculateDamage(int base, int multiplier) {
-    return base * multiplier;
+print numbers[0];
+```
+
+---
+
+## Updating Elements
+
+```cpp
+numbers[1] = 99;
+```
+
+---
+
+## Dynamic Expansion
+
+Assigning beyond the array's current size will expand it automatically.
+
+```cpp
+numbers[5] = 100;
+```
+
+---
+
+## Push Method
+
+Use `.push()` to append a value to the end of an array.
+
+```cpp
+numbers.push(500);
+```
+
+---
+
+## Array Length
+
+Get the current size of the array.
+
+```cpp
+print numbers.length;
+```
+
+---
+
+## Multi-Dimensional Arrays
+
+Arrays can be nested to any depth.
+
+```cpp
+int[][] matrix = [
+    [1, 2],
+    [3, 4]
+];
+
+print matrix[0][1];
+```
+
+---
+
+## Nested Push
+
+You can mutate elements inside nested arrays seamlessly.
+
+```cpp
+matrix[1].push(99);
+```
+
+---
+
+# 13. Functions
+
+## Function Syntax
+
+```cpp
+function returnType functionName(parameters) {
+
 }
+```
 
-// Recursive function example
+---
+
+## Simple Function
+
+Use `void` if the function returns nothing.
+
+```cpp
+function void greet() {
+    print "Hello";
+}
+```
+
+---
+
+## Function With Parameters
+
+```cpp
+function void welcome(string name) {
+    print "Welcome " + name;
+}
+```
+
+---
+
+## Function With Return Value
+
+```cpp
+function int add(int a, int b) {
+    return a + b;
+}
+```
+
+---
+
+## Recursive Function
+
+Functions can call themselves.
+
+```cpp
 function int factorial(int n) {
     if (n <= 1) {
         return 1;
     }
     return n * factorial(n - 1);
 }
-
-int dmg = calculateDamage(50, 2);
-print dmg;
 ```
 
 ---
 
-## 10. Object-Oriented Programming
+# 14. Object-Oriented Programming
 
-NARUTO fully supports Classes, Structs, Access Modifiers, and Inheritance.
+## Class Syntax
 
-### Classes and Access Modifiers
-Classes encapsulate data and behavior. By default, members are `public`. You can use the `private` keyword to restrict access. The constructor method must be strictly named `init()`.
+```cpp
+class Ninja {
+
+}
+```
+
+---
+
+## Class Fields
+
+Fields act like variables inside a class.
 
 ```cpp
 class Ninja {
     string name;
-    private int chakra; // Cannot be accessed directly outside the class!
+    int chakra;
+}
+```
 
-    // The Constructor
-    function void init(string n, int c) {
+---
+
+## Constructor
+
+Constructors run when an object is created and must be named `init()`.
+
+```cpp
+class Ninja {
+    string name;
+
+    function void init(string n) {
         this.name = n;
-        this.chakra = c;
-    }
-
-    function void display() {
-        print "Ninja: " + this.name + " with Chakra: " + string(this.chakra);
     }
 }
 ```
 
-### Inheritance (`extends` and `super`)
-A class can inherit from a parent class. Subclasses must call `super(...)` inside their constructor if the parent requires it.
+---
+
+## Object Creation
+
+Use the `new` keyword to instantiate a class.
+
+```cpp
+Ninja naruto = new Ninja("Naruto");
+```
+
+---
+
+## Methods
+
+```cpp
+class Ninja {
+    string name;
+
+    function void init(string n) {
+        this.name = n;
+    }
+
+    function void display() {
+        print this.name;
+    }
+}
+```
+
+---
+
+## Access Modifiers
+
+Use `private` to hide fields from outside access.
+
+```cpp
+class Ninja {
+    private int chakra;
+}
+```
+
+---
+
+## Inheritance
+
+Use `extends` to inherit fields and methods from another class.
 
 ```cpp
 class Shinobi extends Ninja {
-    string village;
 
-    function void init(string n, int c, string v) {
-        super(n, c); // Call parent 'init' constructor!
-        this.village = v;
+}
+```
+
+---
+
+## super Keyword
+
+Use `super` to call a parent class constructor.
+
+```cpp
+class Ninja {
+    string name;
+
+    function void init(string n) {
+        this.name = n;
+    }
+}
+
+class Shinobi extends Ninja {
+    function void init(string n) {
+        super(n);
+    }
+}
+```
+
+---
+
+## Method Overriding
+
+Redefining a method in a child class overrides the parent method.
+
+```cpp
+class Ninja {
+    function void speak() {
+        print "Ninja";
+    }
+}
+
+class Shinobi extends Ninja {
+    function void speak() {
+        print "Elite Ninja";
+    }
+}
+```
+
+---
+
+# 15. Structs
+
+Structs are lightweight data containers. They cannot have methods or inheritance.
+
+---
+
+## Struct Syntax
+
+```cpp
+struct Point {
+    int x;
+    int y;
+}
+```
+
+---
+
+## Struct Instantiation
+
+Structs are instantiated without `new`. They use a positional argument syntax.
+
+```cpp
+Point p = Point(10, 20);
+```
+
+---
+
+## Struct With Arrays
+
+```cpp
+struct Team {
+    string name;
+    int[] scores;
+}
+```
+
+---
+
+# 16. Memory Model
+
+NARUTO uses:
+* stack memory for primitive variables,
+* heap memory for objects and arrays.
+
+---
+
+## Stack Variables
+
+```cpp
+int age = 10;
+```
+
+---
+
+## Heap Objects
+
+```cpp
+Ninja n = new Ninja("Naruto");
+```
+
+---
+
+# 17. Runtime Behavior
+
+The interpreter executes code:
+1. line-by-line,
+2. statement-by-statement,
+3. scope-by-scope.
+
+---
+
+## Expression Evaluation
+
+Execution order strictly follows mathematical precedence (e.g. multiply before add).
+
+```cpp
+// 1. Multiply (5 * 2 = 10)
+// 2. Add (10 + 10 = 20)
+// 3. Assign
+int result = 10 + 5 * 2;
+```
+
+---
+
+# 18. Best Practices
+
+* Use meaningful variable names.
+* Keep functions focused on one task.
+* Prefer smaller classes.
+* Avoid deeply nested conditions.
+* Use arrays for grouped data.
+* Use structs for lightweight storage.
+
+---
+
+# 19. Full Example Programs
+
+## Calculator
+
+```cpp
+function int add(int a, int b) {
+    return a + b;
+}
+
+int result = add(10, 20);
+print result;
+```
+
+---
+
+## Student System
+
+```cpp
+class Student {
+    string name;
+    int marks;
+
+    function void init(string n, int m) {
+        this.name = n;
+        this.marks = m;
     }
 
     function void display() {
-        super.display(); // Call parent 'display' method!
-        print "Village: " + this.village;
+        print this.name;
+        print this.marks;
     }
 }
 
-Shinobi sasuke = new Shinobi("Sasuke", 90, "Hidden Leaf");
-sasuke.display();
+Student s = new Student("Naruto", 95);
+s.display();
 ```
 
-### Structs
-Structs are lightweight data containers meant for grouping simple variables.
-- Structs **cannot** have methods or inheritance.
-- Structs are instantiated using a Positional Constructor syntax, **NOT** the `new` keyword.
+---
+
+## Multi-Dimensional Data Example
 
 ```cpp
-struct Location {
-    int x;
-    int y;
-    int[] history; // Structs can hold arrays too!
-}
+int[][] board = [
+    [1, 0, 1],
+    [0, 1, 0],
+    [1, 0, 1]
+];
 
-// Instantiate exactly like a function call (positional arguments matching field order)
-Location konoha = Location(10, 20, [1, 2, 3]);
-
-print konoha.x;
-konoha.history.push(4); // Modifying struct fields works seamlessly
+print board[1][1];
 ```
