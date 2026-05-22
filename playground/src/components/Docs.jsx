@@ -1,52 +1,43 @@
-import React, { useState, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import syntaxMarkdown from '../assets/syntax.md?raw';
+import React, { useState } from 'react';
+import Introduction from './docs_pages/Introduction';
+import VariablesAndTypes from './docs_pages/VariablesAndTypes';
+import InputOutput from './docs_pages/InputOutput';
+import ControlFlow from './docs_pages/ControlFlow';
+import DataStructures from './docs_pages/DataStructures';
+import Functions from './docs_pages/Functions';
+import OOP from './docs_pages/OOP';
 
 export default function Docs({ onTryCode }) {
-  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const [activeSectionId, setActiveSectionId] = useState('intro');
 
-  const sections = useMemo(() => {
-    // Split the markdown by `## ` to separate major sections
-    const parts = syntaxMarkdown.split(/\n## /);
+  const sections = [
+    { id: 'intro', title: 'Introduction', component: Introduction },
+    { id: 'variables', title: 'Variables & Data Types', component: VariablesAndTypes },
+    { id: 'io', title: 'Input & Output', component: InputOutput },
+    { id: 'control_flow', title: 'Control Flow & Operators', component: ControlFlow },
+    { id: 'data_structures', title: 'Arrays & Structs', component: DataStructures },
+    { id: 'functions', title: 'Functions', component: Functions },
+    { id: 'oop', title: 'Object-Oriented Programming', component: OOP }
+  ];
+
+  const renderActiveSection = () => {
+    const activeSection = sections.find(s => s.id === activeSectionId);
+    if (!activeSection) return null;
     
-    return parts.map((part, index) => {
-      if (index === 0) {
-        return {
-          title: "Introduction",
-          content: part.trim()
-        };
-      } else {
-        const firstLineEnd = part.indexOf('\n');
-        const titleLine = part.substring(0, firstLineEnd).trim();
-        // Restore the "## " header for proper rendering in markdown
-        const content = `## ${part}`; 
-        
-        // Clean title (remove numbers like "1. ")
-        const cleanTitle = titleLine.replace(/^\d+\.\s*/, '');
-        
-        return {
-          title: cleanTitle,
-          content: content.trim()
-        };
-      }
-    });
-  }, []);
-
-  const activeSection = sections[activeSectionIndex];
+    const Component = activeSection.component;
+    return <Component onTryCode={onTryCode} />;
+  };
 
   return (
     <div className="docs-container">
       <div className="docs-sidebar">
         <h3 className="sidebar-title">Naruto Syntax</h3>
         <ul className="sidebar-list">
-          {sections.map((section, index) => (
+          {sections.map((section) => (
             <li 
-              key={index} 
-              className={`sidebar-item ${activeSectionIndex === index ? 'active' : ''}`}
-              onClick={() => setActiveSectionIndex(index)}
+              key={section.id} 
+              className={`sidebar-item ${activeSectionId === section.id ? 'active' : ''}`}
+              onClick={() => setActiveSectionId(section.id)}
             >
               {section.title}
             </li>
@@ -56,47 +47,7 @@ export default function Docs({ onTryCode }) {
       
       <div className="docs-content">
         <div className="docs-reading-pane">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              code({ node, inline, className, children, ...props }) {
-                const match = /language-(\w+)/.exec(className || '');
-                const codeString = String(children).replace(/\n$/, '');
-                
-                if (!inline && match) {
-                  return (
-                    <div className="code-block-wrapper">
-                      <div className="code-block-header">
-                        <span className="code-lang">{match[1]}</span>
-                        <button 
-                          className="try-btn" 
-                          onClick={() => onTryCode(codeString)}
-                        >
-                          Try it Yourself &raquo;
-                        </button>
-                      </div>
-                      <SyntaxHighlighter
-                        style={vscDarkPlus}
-                        language={match[1]}
-                        PreTag="div"
-                        className="syntax-highlighter-pre"
-                        {...props}
-                      >
-                        {codeString}
-                      </SyntaxHighlighter>
-                    </div>
-                  );
-                }
-                return (
-                  <code className={`inline-code ${className || ''}`} {...props}>
-                    {children}
-                  </code>
-                );
-              }
-            }}
-          >
-            {activeSection?.content}
-          </ReactMarkdown>
+          {renderActiveSection()}
         </div>
       </div>
     </div>
