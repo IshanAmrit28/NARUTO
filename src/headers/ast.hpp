@@ -335,7 +335,7 @@ public:
   Token superclass_token; // holds parent class name if any, else empty/TOKEN_NULL
   std::vector<VARIABLE_DECLARATION_STATEMENT *> fields;
   std::vector<FUNCTION_DECLARATION_STATEMENT *> methods;
-  std::unordered_map<std::string, bool> is_private;
+  std::unordered_map<std::string, std::string> is_private;
   CLASS_DECLARATION_STATEMENT(Token n, Token s,
                               std::vector<VARIABLE_DECLARATION_STATEMENT *> f,
                               std::vector<FUNCTION_DECLARATION_STATEMENT *> m)

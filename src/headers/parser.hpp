@@ -110,7 +110,7 @@ private:
 
     std::vector<VARIABLE_DECLARATION_STATEMENT *> fields;
     std::vector<FUNCTION_DECLARATION_STATEMENT *> methods;
-    std::unordered_map<std::string, bool> member_privacy;
+    std::unordered_map<std::string, std::string> member_privacy;
 
     while (!check_type(TOKEN_CLOSE_BRACE) && !is_at_end())
     {
@@ -121,17 +121,31 @@ private:
       else if (match_types({TOKEN_PRIVATE}))
         is_public = false;
 
-      if (match_types({TOKEN_FUNCTION}))
+      bool is_method = false;
+      if (match_types({TOKEN_FUNCTION})) {
+          is_method = true;
+      } else if (is_data_type(peek_current()->TYPE) || peek_current()->TYPE == TOKEN_ID) {
+          int temp_pos = current_position + 1;
+          while (temp_pos < token_stream.size() && token_stream[temp_pos]->TYPE == TOKEN_OPEN_BRACKET) {
+              temp_pos++;
+              if (temp_pos < token_stream.size() && token_stream[temp_pos]->TYPE == TOKEN_CLOSE_BRACKET) temp_pos++;
+          }
+          if (temp_pos + 1 < token_stream.size() && token_stream[temp_pos]->TYPE == TOKEN_ID && token_stream[temp_pos + 1]->TYPE == TOKEN_OPEN_PAREN) {
+              is_method = true;
+          }
+      }
+
+      if (is_method)
       {
         auto method = (FUNCTION_DECLARATION_STATEMENT *)parse_function_declaration();
         methods.push_back(method);
-        member_privacy[method->name_token.VALUE] = !is_public;
+        if (!is_public) member_privacy[method->name_token.VALUE] = name->VALUE;
       }
       else if (is_data_type(peek_current()->TYPE) || peek_current()->TYPE == TOKEN_ID)
       {
         auto field = (VARIABLE_DECLARATION_STATEMENT *)parse_variable_declaration(false);
         fields.push_back(field);
-        member_privacy[field->name_token.VALUE] = !is_public;
+        if (!is_public) member_privacy[field->name_token.VALUE] = name->VALUE;
       }
       else
       {

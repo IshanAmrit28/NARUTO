@@ -14,9 +14,9 @@ private:
   {
     std::string name;
     std::string superclass;
-    bool is_struct = false;
+    bool is_struct;
     std::unordered_map<std::string, std::string> field_types;
-    std::unordered_map<std::string, bool> is_private;
+    std::unordered_map<std::string, std::string> is_private;
     std::unordered_map<std::string, std::string> method_return_types;
     std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> method_params;
     std::vector<std::pair<std::string, std::string>> struct_fields;
@@ -611,9 +611,9 @@ public:
         exit(1);
       }
 
-      if (info.is_private[method_name])
+      if (info.is_private.count(method_name) && !info.is_private[method_name].empty())
       {
-        if (current_class != obj_type)
+        if (current_class != info.is_private[method_name])
         {
           std::cerr << "Semantic Error: Member '" << method_name << "' of class '"
                     << obj_type << "' is private and can only be accessed within the class." << std::endl;
@@ -758,7 +758,6 @@ public:
     for (auto field : stmt->fields)
     {
       info.field_types[field->name_token.VALUE] = field->type_token.VALUE;
-      info.is_private[field->name_token.VALUE] = false;
       info.struct_fields.push_back({field->name_token.VALUE, field->type_token.VALUE});
     }
 
@@ -845,9 +844,9 @@ public:
     ClassTypeInfo info = class_registry[obj_type];
     std::string member = expr->member_name.VALUE;
 
-    if (info.is_private[member])
+    if (info.is_private.count(member) && !info.is_private[member].empty())
     {
-      if (current_class != obj_type)
+      if (current_class != info.is_private[member])
       {
         std::cerr << "Semantic Error: Member '" << member << "' of class '"
                   << obj_type << "' is private and can only be accessed within the class." << std::endl;
@@ -891,9 +890,9 @@ public:
       exit(1);
     }
 
-    if (info.is_private[member])
+    if (info.is_private.count(member) && !info.is_private[member].empty())
     {
-      if (current_class != obj_type)
+      if (current_class != info.is_private[member])
       {
         std::cerr << "Semantic Error: Member '" << member << "' of class '"
                   << obj_type << "' is private and can only be modified within the class." << std::endl;
