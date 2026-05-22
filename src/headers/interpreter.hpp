@@ -315,6 +315,9 @@ public:
     case TOKEN_STRING_LITERAL:
       last_evaluated_value = RuntimeValue::String(expr->token.VALUE);
       break;
+    case TOKEN_CHAR_LITERAL:
+      last_evaluated_value = RuntimeValue::String(expr->token.VALUE);
+      break;
     case TOKEN_TRUE:
       last_evaluated_value = RuntimeValue::Bool(true);
       break;
